@@ -362,6 +362,10 @@ TopologyGeneric              "%1$s: %2$s (%3$d total cores)"
 AffGranularityBad            "%1$s: granularity setting: %2$s does not exist in topology.  Using granularity=%3$s instead."
 TopologyHybrid               "%1$s: hybrid core type detected: %2$d %3$s cores."
 TopologyHybridCoreEff        "%1$s:   %2$d with core efficiency %3$d."
+TraitParserInvalidDeviceKind "trait parser: invalid device kind (allowed: host/nohost/cpu/gpu/fpga)"
+TraitParserInvalidUID        "trait parser: invalid uid (%1$s)"
+TraitParserMaxRecursion      "trait parser: max recursion depth (%1$d) exceeded"
+TraitParserFailed            "trait parser: failed to parse trait specification (%1$s)"
 
 # --- OpenMP errors detected at runtime ---
 #
