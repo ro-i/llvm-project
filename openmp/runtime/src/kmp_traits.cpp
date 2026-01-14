@@ -24,7 +24,7 @@
 #include "kmp_traits.h"
 #include "kmp_i18n.h"
 
-using namespace kmp_trait;
+using namespace kmp_traits;
 
 // OpenMP trait grammar (in EBNF), currently used for parsing the
 // OMP_DEFAULT_DEVICE/OMP_AVAILABLE_DEVICES environment variables
@@ -101,7 +101,7 @@ namespace parser {
 
 #define MAX_RECURSION_DEPTH 64
 
-using namespace kmp_trait;
+using namespace kmp_traits;
 
 static kmp_str_ref consume_uid_value(kmp_str_ref &scan) {
   scan.skip_space();

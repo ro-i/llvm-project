@@ -16,7 +16,7 @@
 #include "kmp.h"
 #include "kmp_adt.h"
 
-namespace kmp_trait {
+namespace kmp_traits {
 
 extern "C" int omp_get_num_devices();
 extern "C" const char *omp_get_uid_from_device(int device_num);
@@ -65,7 +65,9 @@ class kmp_literal_trait final : public kmp_trait {
 
 public:
   kmp_literal_trait(int device_num)
-      : kmp_trait(LITERAL_T), device_num(device_num) {}
+      : kmp_trait(LITERAL_T), device_num(device_num) {
+    assert(device_num >= 0 && "Device number must be non-negative");
+  }
 
   bool match(int device) const override { return device_num == device; }
 
@@ -139,16 +141,6 @@ public:
   kmp_trait_expr(kmp_trait_expr &&) = delete;
   kmp_trait_expr &operator=(const kmp_trait_expr &) = delete;
   kmp_trait_expr &operator=(kmp_trait_expr &&) = delete;
-
-  // Returns a sorted set of devices that match the expression.
-  kmp_vector<int> evaluate() const {
-    kmp_vector<int> result;
-    for (int d = 0, num_devs = get_num_devices(); d < num_devs; ++d) {
-      if (match(d, num_devs))
-        result.push_back(d);
-    }
-    return result;
-  }
 
   bool is_negated() const { return negated; }
 
@@ -316,18 +308,18 @@ public:
   }
 };
 
-} // namespace kmp_trait
+} // namespace kmp_traits
 
 class kmp_trait_context final {
-  using kmp_trait_clause = kmp_trait::kmp_trait_clause;
-  using kmp_trait_expr = kmp_trait::kmp_trait_expr;
+  using kmp_trait_clause = kmp_traits::kmp_trait_clause;
+  using kmp_trait_expr = kmp_traits::kmp_trait_expr;
 
   kmp_vector<kmp_trait_clause *> clauses;
   // List of devices that have been evaluated.
   kmp_vector<int> devices;
   bool evaluated = false;
   // Can be used by unit tests to mock omp_get_num_devices.
-  int (*get_num_devices)() = kmp_trait::omp_get_num_devices;
+  int (*get_num_devices)() = kmp_traits::omp_get_num_devices;
 
   void _evaluate() {
     devices.clear();

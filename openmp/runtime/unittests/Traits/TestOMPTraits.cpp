@@ -9,7 +9,7 @@
 #include "kmp_traits.h"
 #include "gtest/gtest.h"
 
-using namespace kmp_trait;
+using namespace kmp_traits;
 
 namespace {
 
@@ -63,13 +63,7 @@ TEST(kmp_literal_trait_test, MatchesZero) {
 }
 
 TEST(kmp_literal_trait_test, MatchesNegative) {
-  kmp_literal_trait *trait = new kmp_literal_trait(-1);
-
-  EXPECT_TRUE(trait->match(-1));
-  EXPECT_FALSE(trait->match(0));
-  EXPECT_FALSE(trait->match(1));
-
-  delete trait;
+  EXPECT_DEATH(new kmp_literal_trait(-1), "Device number must be non-negative");
 }
 
 TEST(kmp_literal_trait_test, EqualitySameValue) {
@@ -240,22 +234,6 @@ TEST(kmp_trait_expr_single_test, MatchWildcard) {
   EXPECT_TRUE(expr->match(3));
   // Out of range devices return false
   EXPECT_FALSE(expr->match(100));
-
-  delete expr;
-}
-
-TEST(kmp_trait_expr_single_test, Evaluate) {
-  kmp_trait_expr_single *expr =
-      new kmp_trait_expr_single(new kmp_literal_trait(1));
-
-  // Mock: 3 devices
-  expr->set_num_devices([]() { return 3; });
-
-  kmp_vector<int> result = expr->evaluate();
-  EXPECT_EQ(result.size(), 1u);
-  EXPECT_TRUE(result.contains(1));
-  EXPECT_FALSE(result.contains(0));
-  EXPECT_FALSE(result.contains(2));
 
   delete expr;
 }
@@ -481,24 +459,6 @@ TEST(kmp_trait_expr_group_test, MatchEmptyGroupAND) {
   // Empty AND: vacuously true (0 out of 0 traits match)
   EXPECT_TRUE(group->match(0));
   EXPECT_TRUE(group->match(1));
-
-  delete group;
-}
-
-TEST(kmp_trait_expr_group_test, EvaluateWithMock) {
-  kmp_trait_expr_group *group = new kmp_trait_expr_group();
-
-  // Mock: 3 devices
-  group->set_num_devices([]() { return 3; });
-
-  group->add_expr(new kmp_literal_trait(0));
-  group->add_expr(new kmp_literal_trait(2));
-
-  kmp_vector<int> result = group->evaluate();
-  EXPECT_EQ(result.size(), 2u);
-  EXPECT_TRUE(result.contains(0));
-  EXPECT_TRUE(result.contains(2));
-  EXPECT_FALSE(result.contains(1));
 
   delete group;
 }
