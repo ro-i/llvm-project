@@ -760,4 +760,414 @@ TEST(kmp_trait_context_test, EqualityDifferentClauses) {
   delete ctx2;
 }
 
+//===----------------------------------------------------------------------===//
+// kmp_trait_context Iterator Tests
+//===----------------------------------------------------------------------===//
+
+TEST(kmp_trait_context_test, IteratorRangeBasedFor) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 5 devices
+  context->set_num_devices([]() { return 5; });
+
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  context->add_clause(c1);
+
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(3));
+  context->add_clause(c2);
+
+  // Use range-based for loop (should auto-evaluate)
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 2u);
+  EXPECT_TRUE(collected.contains(1));
+  EXPECT_TRUE(collected.contains(3));
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, IteratorAutoEvaluates) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 4 devices
+  context->set_num_devices([]() { return 4; });
+
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_wildcard_trait());
+  context->add_clause(clause);
+
+  // Directly use begin()/end() without calling evaluate() first
+  int count = 0;
+  for (const int *it = context->begin(); it != context->end(); ++it) {
+    EXPECT_GE(*it, 0);
+    EXPECT_LT(*it, 4);
+    count++;
+  }
+
+  EXPECT_EQ(count, 4);
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, IteratorEmptyContext) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 4 devices
+  context->set_num_devices([]() { return 4; });
+
+  // Empty context - no clauses added
+  int count = 0;
+  for (int d : *context) {
+    (void)d;
+    count++;
+  }
+
+  EXPECT_EQ(count, 0);
+  EXPECT_EQ(context->begin(), context->end());
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, IteratorBeginEnd) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 3 devices
+  context->set_num_devices([]() { return 3; });
+
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_literal_trait(2));
+  context->add_clause(clause);
+
+  // Test begin/end directly
+  const int *b = context->begin();
+  const int *e = context->end();
+
+  EXPECT_EQ(e - b, 1); // Should have exactly 1 element
+  EXPECT_EQ(*b, 2);
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, IteratorMultipleDevices) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Add clauses for devices 0, 2, 4
+  for (int i = 0; i < 6; i += 2) {
+    kmp_trait_clause *clause = new kmp_trait_clause();
+    clause->set_expr(new kmp_literal_trait(i));
+    context->add_clause(clause);
+  }
+
+  // Mock: 6 devices (must be set after adding clauses to propagate to them)
+  context->set_num_devices([]() { return 6; });
+
+  // Collect via iterator
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 3u);
+  EXPECT_TRUE(collected.contains(0));
+  EXPECT_TRUE(collected.contains(2));
+  EXPECT_TRUE(collected.contains(4));
+  EXPECT_FALSE(collected.contains(1));
+  EXPECT_FALSE(collected.contains(3));
+  EXPECT_FALSE(collected.contains(5));
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, IteratorConsistentWithEvaluate) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 5 devices
+  context->set_num_devices([]() { return 5; });
+
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  context->add_clause(c1);
+
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(4));
+  context->add_clause(c2);
+
+  // Get result via evaluate()
+  const kmp_vector<int> &eval_result = context->evaluate();
+
+  // Collect via iterator
+  kmp_vector<int> iter_result;
+  for (int d : *context) {
+    iter_result.push_back(d);
+  }
+
+  // Both should give the same results
+  EXPECT_EQ(eval_result.size(), iter_result.size());
+  for (size_t i = 0; i < eval_result.size(); i++) {
+    EXPECT_EQ(eval_result[i], iter_result[i]);
+  }
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, EvaluateReturnsByReference) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Mock: 3 devices
+  context->set_num_devices([]() { return 3; });
+
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_wildcard_trait());
+  context->add_clause(clause);
+
+  // Multiple calls to evaluate() should return reference to the same data
+  const kmp_vector<int> &result1 = context->evaluate();
+  const kmp_vector<int> &result2 = context->evaluate();
+
+  EXPECT_EQ(&result1, &result2);
+
+  delete context;
+}
+
+//===----------------------------------------------------------------------===//
+// get_num_devices Propagation Tests
+//===----------------------------------------------------------------------===//
+
+TEST(kmp_trait_context_test, PropagationToClausesAddedAfterSetNumDevices) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Set mock BEFORE adding clauses - propagation should still work
+  context->set_num_devices([]() { return 6; });
+
+  // Add clauses for devices 0, 2, 4 (all require 6 devices to be in range)
+  for (int i = 0; i < 6; i += 2) {
+    kmp_trait_clause *clause = new kmp_trait_clause();
+    clause->set_expr(new kmp_literal_trait(i));
+    context->add_clause(clause);
+  }
+
+  // All three devices should match because propagation worked
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 3u);
+  EXPECT_TRUE(collected.contains(0));
+  EXPECT_TRUE(collected.contains(2));
+  EXPECT_TRUE(collected.contains(4));
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, PropagationToClausesAddedBeforeSetNumDevices) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Add clauses BEFORE setting mock
+  for (int i = 0; i < 6; i += 2) {
+    kmp_trait_clause *clause = new kmp_trait_clause();
+    clause->set_expr(new kmp_literal_trait(i));
+    context->add_clause(clause);
+  }
+
+  // Set mock AFTER adding clauses
+  context->set_num_devices([]() { return 6; });
+
+  // All three devices should match
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 3u);
+  EXPECT_TRUE(collected.contains(0));
+  EXPECT_TRUE(collected.contains(2));
+  EXPECT_TRUE(collected.contains(4));
+
+  delete context;
+}
+
+TEST(kmp_trait_expr_group_test, PropagationToExprsAddedAfterSetNumDevices) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+
+  // Set mock BEFORE adding expressions
+  group->set_num_devices([]() { return 8; });
+
+  // Add expressions for devices 5, 6, 7 (require 8 devices)
+  group->add_expr(new kmp_literal_trait(5));
+  group->add_expr(new kmp_literal_trait(6));
+  group->add_expr(new kmp_literal_trait(7));
+
+  // All should match
+  EXPECT_TRUE(group->match(5));
+  EXPECT_TRUE(group->match(6));
+  EXPECT_TRUE(group->match(7));
+  EXPECT_FALSE(group->match(4));
+
+  delete group;
+}
+
+TEST(kmp_trait_expr_group_test, PropagationToExprsAddedBeforeSetNumDevices) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+
+  // Add expressions BEFORE setting mock
+  group->add_expr(new kmp_literal_trait(5));
+  group->add_expr(new kmp_literal_trait(6));
+  group->add_expr(new kmp_literal_trait(7));
+
+  // Set mock AFTER adding expressions
+  group->set_num_devices([]() { return 8; });
+
+  // All should match
+  EXPECT_TRUE(group->match(5));
+  EXPECT_TRUE(group->match(6));
+  EXPECT_TRUE(group->match(7));
+  EXPECT_FALSE(group->match(4));
+
+  delete group;
+}
+
+TEST(kmp_trait_expr_group_test, PropagationToNestedGroups) {
+  kmp_trait_expr_group *outer = new kmp_trait_expr_group();
+  outer->set_group_type(kmp_trait_expr_group::OR);
+
+  // Set mock on outer group FIRST
+  outer->set_num_devices([]() { return 10; });
+
+  // Create inner group and add high-numbered devices
+  kmp_trait_expr_group *inner = new kmp_trait_expr_group();
+  inner->set_group_type(kmp_trait_expr_group::OR);
+  inner->add_expr(new kmp_literal_trait(8));
+  inner->add_expr(new kmp_literal_trait(9));
+
+  // Add inner to outer - should propagate mock to inner and its children
+  outer->add_expr(inner);
+
+  // Add another expression directly to outer
+  outer->add_expr(new kmp_literal_trait(7));
+
+  // All should match with 10 devices
+  EXPECT_TRUE(outer->match(7));
+  EXPECT_TRUE(outer->match(8));
+  EXPECT_TRUE(outer->match(9));
+  EXPECT_FALSE(outer->match(10)); // Out of range
+
+  delete outer;
+}
+
+TEST(kmp_trait_expr_group_test, PropagationToDeeplyNestedGroups) {
+  // Create a deeply nested structure: outer -> middle -> inner
+  kmp_trait_expr_group *outer = new kmp_trait_expr_group();
+  outer->set_group_type(kmp_trait_expr_group::OR);
+
+  // Set mock on outer
+  outer->set_num_devices([]() { return 12; });
+
+  kmp_trait_expr_group *middle = new kmp_trait_expr_group();
+  middle->set_group_type(kmp_trait_expr_group::OR);
+
+  kmp_trait_expr_group *inner = new kmp_trait_expr_group();
+  inner->set_group_type(kmp_trait_expr_group::OR);
+  inner->add_expr(new kmp_literal_trait(10));
+  inner->add_expr(new kmp_literal_trait(11));
+
+  middle->add_expr(inner);
+  middle->add_expr(new kmp_literal_trait(9));
+
+  outer->add_expr(middle);
+  outer->add_expr(new kmp_literal_trait(8));
+
+  // All devices 8-11 should match (requires 12 devices)
+  EXPECT_TRUE(outer->match(8));
+  EXPECT_TRUE(outer->match(9));
+  EXPECT_TRUE(outer->match(10));
+  EXPECT_TRUE(outer->match(11));
+  EXPECT_FALSE(outer->match(12)); // Out of range
+
+  delete outer;
+}
+
+TEST(kmp_trait_context_test, PropagationToNestedGroupsInClauses) {
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Set mock on context FIRST
+  context->set_num_devices([]() { return 10; });
+
+  // Create a group with nested structure
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::OR);
+
+  kmp_trait_expr_group *inner = new kmp_trait_expr_group();
+  inner->set_group_type(kmp_trait_expr_group::OR);
+  inner->add_expr(new kmp_literal_trait(8));
+  inner->add_expr(new kmp_literal_trait(9));
+
+  group->add_expr(inner);
+  group->add_expr(new kmp_literal_trait(7));
+
+  // Create clause with the group
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(group);
+
+  // Add clause to context - should propagate to group and inner
+  context->add_clause(clause);
+
+  // All should match
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 3u);
+  EXPECT_TRUE(collected.contains(7));
+  EXPECT_TRUE(collected.contains(8));
+  EXPECT_TRUE(collected.contains(9));
+
+  delete context;
+}
+
+TEST(kmp_trait_context_test, PropagationMixedOrder) {
+  // Test a complex scenario with mixed ordering
+  kmp_trait_context *context = new kmp_trait_context();
+
+  // Add first clause before set_num_devices
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(5));
+  context->add_clause(c1);
+
+  // Set mock
+  context->set_num_devices([]() { return 8; });
+
+  // Add second clause after set_num_devices
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(6));
+  context->add_clause(c2);
+
+  // Add third clause with a group
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->add_expr(new kmp_literal_trait(7));
+
+  kmp_trait_clause *c3 = new kmp_trait_clause();
+  c3->set_expr(group);
+  context->add_clause(c3);
+
+  // All three should match
+  kmp_vector<int> collected;
+  for (int d : *context) {
+    collected.push_back(d);
+  }
+
+  EXPECT_EQ(collected.size(), 3u);
+  EXPECT_TRUE(collected.contains(5));
+  EXPECT_TRUE(collected.contains(6));
+  EXPECT_TRUE(collected.contains(7));
+
+  delete context;
+}
+
 } // namespace

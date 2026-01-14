@@ -115,7 +115,8 @@ public:
   }
 };
 
-/// Represents a collection of traits that are either ANDed or ORed together.
+/// Abstract class representing either a single trait expression or a collection
+/// of trait expressions that are ANDed or ORed together.
 class kmp_trait_expr {
 protected:
   enum expr_type { SINGLE_T, GROUP_T };
@@ -175,6 +176,7 @@ public:
   }
 };
 
+/// Represents a single (possibly negated) trait.
 class kmp_trait_expr_single final : public kmp_trait_expr {
   kmp_trait *trait = nullptr;
 
@@ -211,6 +213,8 @@ public:
   }
 };
 
+/// Represents a (possibly negated) collection of traits that are either ANDed
+/// or ORed together.
 class kmp_trait_expr_group final : public kmp_trait_expr {
 public:
   enum group_type { AND, OR };
@@ -246,6 +250,8 @@ public:
   void add_expr(kmp_trait_expr *expr) {
     assert(expr);
     exprs.push_back(expr);
+    // Propagate get_num_devices to the expression.
+    expr->set_num_devices(get_num_devices);
   }
 
   group_type get_group_type() const { return type; }
@@ -317,8 +323,30 @@ class kmp_trait_context final {
   using kmp_trait_expr = kmp_trait::kmp_trait_expr;
 
   kmp_vector<kmp_trait_clause *> clauses;
+  // List of devices that have been evaluated.
+  kmp_vector<int> devices;
+  bool evaluated = false;
   // Can be used by unit tests to mock omp_get_num_devices.
   int (*get_num_devices)() = kmp_trait::omp_get_num_devices;
+
+  void _evaluate() {
+    devices.clear();
+    for (int d = 0; d < get_num_devices(); ++d) {
+      if (_match(d))
+        devices.push_back(d);
+    }
+    evaluated = true;
+  }
+
+  bool _match(int device) const {
+    if (device < 0 || device >= get_num_devices())
+      return false;
+    for (kmp_trait_clause *clause : clauses) {
+      if (clause->match(device))
+        return true;
+    }
+    return false;
+  }
 
 public:
   kmp_trait_context() = default;
@@ -337,28 +365,34 @@ public:
   void add_clause(kmp_trait_clause *clause) {
     assert(clause);
     clauses.push_back(clause);
+    // Propagate get_num_devices to the clause.
+    if (kmp_trait_expr *expr = clause->get_expr())
+      expr->set_num_devices(get_num_devices);
   }
 
   // Returns the list of devices that match the trait specification represented
   // by the context. The list contains devices numbers forming a set and sorted
   // in ascending order.
-  kmp_vector<int> evaluate() const {
-    kmp_vector<int> result;
-    for (int d = 0; d < get_num_devices(); ++d) {
-      if (match(d))
-        result.push_back(d);
-    }
-    return result;
+  // Note to future developers: if we want to add an option to force
+  // re-evaluation, we need to consider that the devices vector and thus the
+  // context iterators are invalidated.
+  const kmp_vector<int> &evaluate() {
+    trigger_evaluation();
+    return devices;
   }
 
+  const kmp_vector<int> &evaluate() const {
+    assert(evaluated && "kmp_trait_context not evaluated");
+    return devices;
+  }
+
+  // Check if the device matches the trait specification represented by the
+  // context.
+  bool match(int device) { return evaluate().contains(device); }
+
   bool match(int device) const {
-    if (device < 0 || device >= get_num_devices())
-      return false;
-    for (kmp_trait_clause *clause : clauses) {
-      if (clause->match(device))
-        return true;
-    }
-    return false;
+    assert(evaluated && "kmp_trait_context not evaluated");
+    return devices.contains(device);
   }
 
   // For testing purposes only: set the function that returns the number of
@@ -371,6 +405,12 @@ public:
     }
   }
 
+  // Triggers lazy evaluation if not already evaluated.
+  void trigger_evaluation() {
+    if (!evaluated)
+      _evaluate();
+  }
+
   // Use KMP_INTERNAL_MALLOC/KMP_INTERNAL_FREE for memory management.
   void *operator new(size_t size) { return KMP_INTERNAL_MALLOC(size); }
   void operator delete(void *ptr) { KMP_INTERNAL_FREE(ptr); }
@@ -380,6 +420,13 @@ public:
                           kmp_trait_clause *const &b) { return *a == *b; };
     return clauses.is_set_equal(other.clauses, clause_comp);
   }
+
+  // Iterator support (returns the iterators of the devices vector; triggers
+  // lazy evaluation if not already evaluated and if the context is not const).
+  const int *begin() { return evaluate().begin(); }
+  const int *end() { return evaluate().end(); }
+  const int *begin() const { return evaluate().begin(); }
+  const int *end() const { return evaluate().end(); }
 };
 
 #endif // OPENMP_TRAITS_H

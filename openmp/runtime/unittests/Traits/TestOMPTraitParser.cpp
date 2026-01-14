@@ -32,7 +32,7 @@ protected:
 };
 
 template <bool expected_result>
-static void check_result_single(const kmp_trait_context *context,
+static void check_result_single(kmp_trait_context *context,
                                 const kmp_vector<int> &result,
                                 int expected_device_num) {
   EXPECT_EQ(context->match(expected_device_num), expected_result);
@@ -40,14 +40,14 @@ static void check_result_single(const kmp_trait_context *context,
 }
 
 template <bool expected_result, int... device_nums>
-static void check_result(const kmp_trait_context *context,
+static void check_result(kmp_trait_context *context,
                          const kmp_vector<int> &result) {
   (check_result_single<expected_result>(context, result, device_nums), ...);
 }
 
 template <bool expected_result, int... device_nums>
-static void check_result(const kmp_trait_context *context) {
-  kmp_vector<int> result = context->evaluate();
+static void check_result(kmp_trait_context *context) {
+  const kmp_vector<int> &result = context->evaluate();
   check_result<expected_result, device_nums...>(context, result);
 }
 
