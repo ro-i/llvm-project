@@ -103,171 +103,173 @@ namespace parser {
 
 using namespace kmp_trait;
 
-static StringRef consumeUIDValue(StringRef &Scan) {
-  Scan.skipSpace();
-  StringRef UID = Scan.takeWhile([](char C) {
-    return isalnum(static_cast<unsigned char>(C)) || C == '-' || C == '_';
+static kmp_str_ref consume_uid_value(kmp_str_ref &scan) {
+  scan.skip_space();
+  kmp_str_ref uid = scan.take_while([](char c) {
+    return isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_';
   });
-  Scan.dropFront(UID.length());
-  if (UID.empty() || !Scan.consumeFront(")"))
-    KMP_FATAL(TraitParserInvalidUID, UID.copy());
-  return UID;
+  scan.drop_front(uid.length());
+  if (uid.empty() || !scan.consume_front(")"))
+    KMP_FATAL(TraitParserInvalidUID, uid.copy());
+  return uid;
 }
 
-static bool consumeTrait(OMPTraitExprSingle &Expr, StringRef &Scan) {
-  Scan.skipSpace();
-  if (!Scan.consumeFront("uid("))
+static bool consume_trait(kmp_trait_expr_single &expr, kmp_str_ref &scan) {
+  scan.skip_space();
+  if (!scan.consume_front("uid("))
     return false;
-  StringRef UID = consumeUIDValue(Scan);
-  Expr.setTrait(new OMPUIDTrait(UID));
+  kmp_str_ref uid = consume_uid_value(scan);
+  expr.set_trait(new kmp_uid_trait(uid));
   return true;
 }
 
-static bool consumeTraitExprSingle(OMPTraitExprSingle &Expr, StringRef &Scan) {
-  StringRef OrigScan = Scan;
+static bool consume_trait_expr_single(kmp_trait_expr_single &expr,
+                                      kmp_str_ref &scan) {
+  kmp_str_ref orig_scan = scan;
 
-  Scan.skipSpace();
-  if (Scan.consumeFront("!"))
-    Expr.setNegated();
-  if (consumeTrait(Expr, Scan))
+  scan.skip_space();
+  if (scan.consume_front("!"))
+    expr.set_negated();
+  if (consume_trait(expr, scan))
     return true;
-  Scan = OrigScan;
+  scan = orig_scan;
   return false;
 }
 
 // forward declaration
-static bool consumeTraitExprGroup(OMPTraitExprGroup &Group, StringRef &Scan,
-                                  int MaxRecursion);
+static bool consume_trait_expr_group(kmp_trait_expr_group &group,
+                                     kmp_str_ref &scan, int max_recursion);
 
-static bool consumeTraitExprGroupParen(OMPTraitExprGroup &Group,
-                                       StringRef &Scan, int MaxRecursion) {
-  if (MaxRecursion-- <= 0)
+static bool consume_trait_expr_group_paren(kmp_trait_expr_group &group,
+                                           kmp_str_ref &scan,
+                                           int max_recursion) {
+  if (max_recursion-- <= 0)
     KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
-  StringRef OrigScan = Scan;
+  kmp_str_ref orig_scan = scan;
 
-  Scan.skipSpace();
-  if (Scan.consumeFront("!"))
-    Group.setNegated();
+  scan.skip_space();
+  if (scan.consume_front("!"))
+    group.set_negated();
 
-  Scan.skipSpace();
-  if (!Scan.consumeFront("(") ||
-      !consumeTraitExprGroup(Group, Scan, MaxRecursion)) {
-    Scan = OrigScan;
+  scan.skip_space();
+  if (!scan.consume_front("(") ||
+      !consume_trait_expr_group(group, scan, max_recursion)) {
+    scan = orig_scan;
     return false;
   }
 
-  Scan.skipSpace();
-  if (!Scan.consumeFront(")")) {
-    Scan = OrigScan;
+  scan.skip_space();
+  if (!scan.consume_front(")")) {
+    scan = orig_scan;
     return false;
   }
   return true;
 }
 
-static bool consumeTraitExpr(OMPTraitExpr *&Expr, StringRef &Scan,
-                             int MaxRecursion) {
-  if (MaxRecursion-- <= 0)
+static bool consume_trait_expr(kmp_trait_expr *&expr, kmp_str_ref &scan,
+                               int max_recursion) {
+  if (max_recursion-- <= 0)
     KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
 
   // Parse a single trait expression
-  OMPTraitExprSingle *SingleExpr = new OMPTraitExprSingle();
-  if (consumeTraitExprSingle(*SingleExpr, Scan)) {
-    Expr = SingleExpr;
+  kmp_trait_expr_single *single_expr = new kmp_trait_expr_single();
+  if (consume_trait_expr_single(*single_expr, scan)) {
+    expr = single_expr;
     return true;
   }
-  delete SingleExpr;
+  delete single_expr;
 
   // Parse a parenthesized group trait expression
-  OMPTraitExprGroup *GroupExpr = new OMPTraitExprGroup();
-  if (consumeTraitExprGroupParen(*GroupExpr, Scan, MaxRecursion)) {
-    Expr = GroupExpr;
+  kmp_trait_expr_group *group_expr = new kmp_trait_expr_group();
+  if (consume_trait_expr_group_paren(*group_expr, scan, max_recursion)) {
+    expr = group_expr;
     return true;
   }
-  delete GroupExpr;
+  delete group_expr;
 
   return false;
 }
 
-static bool consumeTraitExprGroup(OMPTraitExprGroup &Group, StringRef &Scan,
-                                  int MaxRecursion) {
-  if (MaxRecursion-- <= 0)
+static bool consume_trait_expr_group(kmp_trait_expr_group &group,
+                                     kmp_str_ref &scan, int max_recursion) {
+  if (max_recursion-- <= 0)
     KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
 
-  OMPTraitExpr *Expr = nullptr;
-  if (!consumeTraitExpr(Expr, Scan, MaxRecursion))
+  kmp_trait_expr *expr = nullptr;
+  if (!consume_trait_expr(expr, scan, max_recursion))
     return false;
 
-  Group.addExpr(Expr);
-  const char *Op = nullptr;
+  group.add_expr(expr);
+  const char *op = nullptr;
 
-  Scan.skipSpace();
-  if (Scan.consumeFront("||")) {
-    Group.setGroupType(OMPTraitExprGroup::GroupType::OR);
-    Op = "||";
-  } else if (Scan.consumeFront("&&")) {
-    Group.setGroupType(OMPTraitExprGroup::GroupType::AND);
-    Op = "&&";
+  scan.skip_space();
+  if (scan.consume_front("||")) {
+    group.set_group_type(kmp_trait_expr_group::OR);
+    op = "||";
+  } else if (scan.consume_front("&&")) {
+    group.set_group_type(kmp_trait_expr_group::AND);
+    op = "&&";
   } else {
     return true; // single trait expression, no group
   }
 
   // Now that we got an operator, we need at least one more trait expr.
   do {
-    if (!consumeTraitExpr(Expr, Scan, MaxRecursion))
+    if (!consume_trait_expr(expr, scan, max_recursion))
       return false;
-    Group.addExpr(Expr);
-    Scan.skipSpace();
-  } while (Scan.consumeFront(Op));
+    group.add_expr(expr);
+    scan.skip_space();
+  } while (scan.consume_front(op));
 
   return true;
 }
 
-static bool consumeClause(OMPTraitClause &Clause, StringRef &Scan) {
-  StringRef OrigScan = Scan;
-  Scan.skipSpace();
+static bool consume_clause(kmp_trait_clause &clause, kmp_str_ref &scan) {
+  kmp_str_ref orig_scan = scan;
+  scan.skip_space();
 
   // Parse wildcard "trait"
-  if (Scan.consumeFront("*")) {
-    Clause.setExpr(new OMPWildcardTrait());
+  if (scan.consume_front("*")) {
+    clause.set_expr(new kmp_wildcard_trait());
     return true;
   }
 
   // Parse a literal device number
-  int Value;
-  if (Scan.consumeInteger(Value)) {
-    Clause.setExpr(new OMPLiteralTrait(Value));
+  int value;
+  if (scan.consume_integer(value)) {
+    clause.set_expr(new kmp_literal_trait(value));
     return true;
   }
 
   // Parse a trait expression group
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  if (consumeTraitExprGroup(*Group, Scan, MAX_RECURSION_DEPTH)) {
-    Clause.setExpr(Group);
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  if (consume_trait_expr_group(*group, scan, MAX_RECURSION_DEPTH)) {
+    clause.set_expr(group);
     return true;
   }
-  delete Group;
+  delete group;
 
-  Scan = OrigScan;
+  scan = orig_scan;
   return false;
 }
 
-static bool consumeList(OMPTraitContext &Context, StringRef &Scan) {
-  StringRef OrigScan = Scan;
-  Scan.skipSpace();
+static bool consume_list(kmp_trait_context &context, kmp_str_ref &scan) {
+  kmp_str_ref orig_scan = scan;
+  scan.skip_space();
 
-  while (!Scan.empty()) {
-    OMPTraitClause *Clause = new OMPTraitClause();
-    if (!consumeClause(*Clause, Scan)) {
-      delete Clause;
-      Scan = OrigScan;
+  while (!scan.empty()) {
+    kmp_trait_clause *clause = new kmp_trait_clause();
+    if (!consume_clause(*clause, scan)) {
+      delete clause;
+      scan = orig_scan;
       return false;
     }
-    Context.addClause(Clause);
-    OrigScan = Scan;
+    context.add_clause(clause);
+    orig_scan = scan;
 
-    Scan.skipSpace();
-    if (!Scan.consumeFront(",") && !Scan.empty()) {
-      Scan = OrigScan;
+    scan.skip_space();
+    if (!scan.consume_front(",") && !scan.empty()) {
+      scan = orig_scan;
       return false;
     }
   }
@@ -277,9 +279,9 @@ static bool consumeList(OMPTraitContext &Context, StringRef &Scan) {
 
 } // namespace parser
 
-OMPTraitContext *OMPTraitContext::parseFromSpec(StringRef Spec) {
-  OMPTraitContext *Context = new OMPTraitContext();
-  if (!parser::consumeList(*Context, Spec))
-    KMP_FATAL(TraitParserFailed, Spec.copy());
-  return Context;
+kmp_trait_context *kmp_trait_context::parse_from_spec(kmp_str_ref spec) {
+  kmp_trait_context *context = new kmp_trait_context();
+  if (!parser::consume_list(*context, spec))
+    KMP_FATAL(TraitParserFailed, spec.copy());
+  return context;
 }

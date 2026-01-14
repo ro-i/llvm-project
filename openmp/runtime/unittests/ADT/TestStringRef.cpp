@@ -1,4 +1,4 @@
-//===- TestStringRef.cpp - Tests for StringRef class ---------------------===//
+//===- TestStringRef.cpp - Tests for kmp_str_ref class -------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -13,555 +13,555 @@
 
 namespace {
 
-// Helper to compare StringRef content with a C string
-static bool equals(const StringRef &S, const char *Expected) {
-  size_t ExpectedLen = strlen(Expected);
-  if (S.length() != ExpectedLen)
+// Helper to compare kmp_str_ref content with a C string
+static bool equals(const kmp_str_ref &s, const char *expected) {
+  size_t expected_len = strlen(expected);
+  if (s.length() != expected_len)
     return false;
-  return memcmp(S.begin(), Expected, ExpectedLen) == 0;
+  return memcmp(s.begin(), expected, expected_len) == 0;
 }
 
 //===----------------------------------------------------------------------===//
 // Construction and Basic Properties
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, ConstructFromCString) {
-  StringRef S("Hello");
-  EXPECT_EQ(S.length(), 5u);
-  EXPECT_TRUE(equals(S, "Hello"));
+TEST(kmp_str_ref_test, ConstructFromCString) {
+  kmp_str_ref s("Hello");
+  EXPECT_EQ(s.length(), 5u);
+  EXPECT_TRUE(equals(s, "Hello"));
 }
 
-TEST(StringRefTest, ConstructFromCStringWithLength) {
-  StringRef S("Hello World", 5);
-  EXPECT_EQ(S.length(), 5u);
-  EXPECT_TRUE(equals(S, "Hello"));
+TEST(kmp_str_ref_test, ConstructFromCStringWithLength) {
+  kmp_str_ref s("Hello World", 5);
+  EXPECT_EQ(s.length(), 5u);
+  EXPECT_TRUE(equals(s, "Hello"));
 }
 
-TEST(StringRefTest, ConstructEmpty) {
-  StringRef S("");
-  EXPECT_EQ(S.length(), 0u);
-  EXPECT_TRUE(S.empty());
+TEST(kmp_str_ref_test, ConstructEmpty) {
+  kmp_str_ref s("");
+  EXPECT_EQ(s.length(), 0u);
+  EXPECT_TRUE(s.empty());
 }
 
-TEST(StringRefTest, Length) {
-  EXPECT_EQ(StringRef("").length(), 0u);
-  EXPECT_EQ(StringRef("a").length(), 1u);
-  EXPECT_EQ(StringRef("hello").length(), 5u);
-  EXPECT_EQ(StringRef("hello world").length(), 11u);
+TEST(kmp_str_ref_test, Length) {
+  EXPECT_EQ(kmp_str_ref("").length(), 0u);
+  EXPECT_EQ(kmp_str_ref("a").length(), 1u);
+  EXPECT_EQ(kmp_str_ref("hello").length(), 5u);
+  EXPECT_EQ(kmp_str_ref("hello world").length(), 11u);
 }
 
 //===----------------------------------------------------------------------===//
 // empty
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, EmptyString) {
-  StringRef S("");
-  EXPECT_TRUE(S.empty());
+TEST(kmp_str_ref_test, EmptyString) {
+  kmp_str_ref s("");
+  EXPECT_TRUE(s.empty());
 }
 
-TEST(StringRefTest, NonEmptyString) {
-  StringRef S("hello");
-  EXPECT_FALSE(S.empty());
+TEST(kmp_str_ref_test, NonEmptyString) {
+  kmp_str_ref s("hello");
+  EXPECT_FALSE(s.empty());
 }
 
-TEST(StringRefTest, EmptyAfterConsumeFront) {
-  StringRef S("hello");
-  EXPECT_FALSE(S.empty());
+TEST(kmp_str_ref_test, EmptyAfterConsumeFront) {
+  kmp_str_ref s("hello");
+  EXPECT_FALSE(s.empty());
 
-  S.consumeFront("hello");
+  s.consume_front("hello");
 
-  EXPECT_TRUE(S.empty());
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.empty());
+  EXPECT_EQ(s.length(), 0u);
 }
 
-TEST(StringRefTest, EmptyAfterDropFront) {
-  StringRef S("abc");
-  EXPECT_FALSE(S.empty());
+TEST(kmp_str_ref_test, EmptyAfterDropFront) {
+  kmp_str_ref s("abc");
+  EXPECT_FALSE(s.empty());
 
-  S.dropFront(3);
+  s.drop_front(3);
 
-  EXPECT_TRUE(S.empty());
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.empty());
+  EXPECT_EQ(s.length(), 0u);
 }
 
-TEST(StringRefTest, EmptyAfterDropWhile) {
-  StringRef S("12345");
-  EXPECT_FALSE(S.empty());
+TEST(kmp_str_ref_test, EmptyAfterDropWhile) {
+  kmp_str_ref s("12345");
+  EXPECT_FALSE(s.empty());
 
-  S.dropWhile([](char C) {
-    return static_cast<bool>(isdigit(static_cast<unsigned char>(C)));
+  s.drop_while([](char c) {
+    return static_cast<bool>(isdigit(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_TRUE(S.empty());
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.empty());
+  EXPECT_EQ(s.length(), 0u);
 }
 
-TEST(StringRefTest, EmptyAfterConsumeInteger) {
-  StringRef S("42");
-  int Value = 0;
-  EXPECT_FALSE(S.empty());
+TEST(kmp_str_ref_test, EmptyAfterConsumeInteger) {
+  kmp_str_ref s("42");
+  int value = 0;
+  EXPECT_FALSE(s.empty());
 
-  S.consumeInteger(Value);
+  s.consume_integer(value);
 
-  EXPECT_TRUE(S.empty());
-  EXPECT_EQ(S.length(), 0u);
-  EXPECT_EQ(Value, 42);
+  EXPECT_TRUE(s.empty());
+  EXPECT_EQ(s.length(), 0u);
+  EXPECT_EQ(value, 42);
 }
 
-TEST(StringRefTest, NotEmptyAfterPartialConsume) {
-  StringRef S("123abc");
-  int Value = 0;
+TEST(kmp_str_ref_test, NotEmptyAfterPartialConsume) {
+  kmp_str_ref s("123abc");
+  int value = 0;
 
-  S.consumeInteger(Value);
+  s.consume_integer(value);
 
-  EXPECT_FALSE(S.empty());
-  EXPECT_EQ(S.length(), 3u);
-  EXPECT_TRUE(equals(S, "abc"));
+  EXPECT_FALSE(s.empty());
+  EXPECT_EQ(s.length(), 3u);
+  EXPECT_TRUE(equals(s, "abc"));
 }
 
 //===----------------------------------------------------------------------===//
 // Iterators
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, BeginEnd) {
-  StringRef S("Hello");
-  EXPECT_EQ(S.end() - S.begin(), 5);
-  EXPECT_EQ(*S.begin(), 'H');
+TEST(kmp_str_ref_test, BeginEnd) {
+  kmp_str_ref s("Hello");
+  EXPECT_EQ(s.end() - s.begin(), 5);
+  EXPECT_EQ(*s.begin(), 'H');
 }
 
-TEST(StringRefTest, RangeBasedFor) {
-  StringRef S("abc");
-  std::string Result;
-  for (char C : S) {
-    Result += C;
+TEST(kmp_str_ref_test, RangeBasedFor) {
+  kmp_str_ref s("abc");
+  std::string result;
+  for (char c : s) {
+    result += c;
   }
-  EXPECT_EQ(Result, "abc");
+  EXPECT_EQ(result, "abc");
 }
 
 //===----------------------------------------------------------------------===//
 // Assignment
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, Assignment) {
-  StringRef S1("First");
-  StringRef S2("Second");
+TEST(kmp_str_ref_test, Assignment) {
+  kmp_str_ref s1("First");
+  kmp_str_ref s2("Second");
 
-  S1 = S2;
+  s1 = s2;
 
-  EXPECT_TRUE(equals(S1, "Second"));
-  EXPECT_EQ(S1.length(), 6u);
+  EXPECT_TRUE(equals(s1, "Second"));
+  EXPECT_EQ(s1.length(), 6u);
 }
 
-TEST(StringRefTest, SelfAssignment) {
-  StringRef S("Test");
-  StringRef &SRef = S;
-  S = SRef; // Avoid self-assignment warning
-  EXPECT_TRUE(equals(S, "Test"));
-  EXPECT_EQ(S.length(), 4u);
-}
-
-//===----------------------------------------------------------------------===//
-// consumeFront
-//===----------------------------------------------------------------------===//
-
-TEST(StringRefTest, ConsumeFrontSuccess) {
-  StringRef S("Hello World");
-
-  EXPECT_TRUE(S.consumeFront("Hello"));
-  EXPECT_EQ(S.length(), 6u);
-  EXPECT_TRUE(equals(S, " World"));
-}
-
-TEST(StringRefTest, ConsumeFrontFailure) {
-  StringRef S("Hello World");
-
-  EXPECT_FALSE(S.consumeFront("World"));
-  EXPECT_EQ(S.length(), 11u);
-  EXPECT_TRUE(equals(S, "Hello World"));
-}
-
-TEST(StringRefTest, ConsumeFrontEmpty) {
-  StringRef S("Hello");
-
-  EXPECT_TRUE(S.consumeFront(""));
-  EXPECT_EQ(S.length(), 5u);
-}
-
-TEST(StringRefTest, ConsumeFrontTooLong) {
-  StringRef S("Hi");
-
-  EXPECT_FALSE(S.consumeFront("Hello"));
-  EXPECT_EQ(S.length(), 2u);
-}
-
-TEST(StringRefTest, ConsumeFrontExact) {
-  StringRef S("Hello");
-
-  EXPECT_TRUE(S.consumeFront("Hello"));
-  EXPECT_EQ(S.length(), 0u);
-}
-
-TEST(StringRefTest, ConsumeFrontMultiple) {
-  StringRef S("prefix:middle:suffix");
-
-  EXPECT_TRUE(S.consumeFront("prefix"));
-  EXPECT_TRUE(S.consumeFront(":"));
-  EXPECT_TRUE(S.consumeFront("middle"));
-  EXPECT_TRUE(S.consumeFront(":"));
-  EXPECT_TRUE(equals(S, "suffix"));
+TEST(kmp_str_ref_test, SelfAssignment) {
+  kmp_str_ref s("Test");
+  kmp_str_ref &s_ref = s;
+  s = s_ref; // Avoid self-assignment warning
+  EXPECT_TRUE(equals(s, "Test"));
+  EXPECT_EQ(s.length(), 4u);
 }
 
 //===----------------------------------------------------------------------===//
-// consumeInteger
+// consume_front
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, ConsumeIntegerSimple) {
-  StringRef S("42");
-  int Value = 0;
+TEST(kmp_str_ref_test, ConsumeFrontSuccess) {
+  kmp_str_ref s("Hello World");
 
-  EXPECT_TRUE(S.consumeInteger(Value));
-  EXPECT_EQ(Value, 42);
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.consume_front("Hello"));
+  EXPECT_EQ(s.length(), 6u);
+  EXPECT_TRUE(equals(s, " World"));
 }
 
-TEST(StringRefTest, ConsumeIntegerWithTrailing) {
-  StringRef S("123abc");
-  int Value = 0;
+TEST(kmp_str_ref_test, ConsumeFrontFailure) {
+  kmp_str_ref s("Hello World");
 
-  EXPECT_TRUE(S.consumeInteger(Value));
-  EXPECT_EQ(Value, 123);
-  EXPECT_TRUE(equals(S, "abc"));
+  EXPECT_FALSE(s.consume_front("World"));
+  EXPECT_EQ(s.length(), 11u);
+  EXPECT_TRUE(equals(s, "Hello World"));
 }
 
-TEST(StringRefTest, ConsumeIntegerZero) {
-  StringRef S("0");
-  int Value = -1;
+TEST(kmp_str_ref_test, ConsumeFrontEmpty) {
+  kmp_str_ref s("Hello");
 
-  // AllowZero = true by default
-  EXPECT_TRUE(S.consumeInteger(Value));
-  EXPECT_EQ(Value, 0);
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.consume_front(""));
+  EXPECT_EQ(s.length(), 5u);
 }
 
-TEST(StringRefTest, ConsumeIntegerZeroNotAllowed) {
-  StringRef S("0rest");
-  int Value = -1;
+TEST(kmp_str_ref_test, ConsumeFrontTooLong) {
+  kmp_str_ref s("Hi");
 
-  EXPECT_FALSE(S.consumeInteger(Value, /*AllowZero=*/false));
+  EXPECT_FALSE(s.consume_front("Hello"));
+  EXPECT_EQ(s.length(), 2u);
+}
+
+TEST(kmp_str_ref_test, ConsumeFrontExact) {
+  kmp_str_ref s("Hello");
+
+  EXPECT_TRUE(s.consume_front("Hello"));
+  EXPECT_EQ(s.length(), 0u);
+}
+
+TEST(kmp_str_ref_test, ConsumeFrontMultiple) {
+  kmp_str_ref s("prefix:middle:suffix");
+
+  EXPECT_TRUE(s.consume_front("prefix"));
+  EXPECT_TRUE(s.consume_front(":"));
+  EXPECT_TRUE(s.consume_front("middle"));
+  EXPECT_TRUE(s.consume_front(":"));
+  EXPECT_TRUE(equals(s, "suffix"));
+}
+
+//===----------------------------------------------------------------------===//
+// consume_integer
+//===----------------------------------------------------------------------===//
+
+TEST(kmp_str_ref_test, ConsumeIntegerSimple) {
+  kmp_str_ref s("42");
+  int value = 0;
+
+  EXPECT_TRUE(s.consume_integer(value));
+  EXPECT_EQ(value, 42);
+  EXPECT_EQ(s.length(), 0u);
+}
+
+TEST(kmp_str_ref_test, ConsumeIntegerWithTrailing) {
+  kmp_str_ref s("123abc");
+  int value = 0;
+
+  EXPECT_TRUE(s.consume_integer(value));
+  EXPECT_EQ(value, 123);
+  EXPECT_TRUE(equals(s, "abc"));
+}
+
+TEST(kmp_str_ref_test, ConsumeIntegerZero) {
+  kmp_str_ref s("0");
+  int value = -1;
+
+  // allow_zero = true by default
+  EXPECT_TRUE(s.consume_integer(value));
+  EXPECT_EQ(value, 0);
+  EXPECT_EQ(s.length(), 0u);
+}
+
+TEST(kmp_str_ref_test, ConsumeIntegerZeroNotAllowed) {
+  kmp_str_ref s("0rest");
+  int value = -1;
+
+  EXPECT_FALSE(s.consume_integer(value, /*allow_zero=*/false));
   // State should be restored on failure
-  EXPECT_TRUE(equals(S, "0rest"));
+  EXPECT_TRUE(equals(s, "0rest"));
 }
 
-TEST(StringRefTest, ConsumeIntegerNoDigits) {
-  StringRef S("abc");
-  int Value = -1;
+TEST(kmp_str_ref_test, ConsumeIntegerNoDigits) {
+  kmp_str_ref s("abc");
+  int value = -1;
 
   // No digits to consume, should fail
-  EXPECT_FALSE(S.consumeInteger(Value));
+  EXPECT_FALSE(s.consume_integer(value));
   // String should be unchanged
-  EXPECT_TRUE(equals(S, "abc"));
+  EXPECT_TRUE(equals(s, "abc"));
 }
 
-TEST(StringRefTest, ConsumeIntegerEmpty) {
-  StringRef S("");
-  int Value = -1;
+TEST(kmp_str_ref_test, ConsumeIntegerEmpty) {
+  kmp_str_ref s("");
+  int value = -1;
 
   // Empty string has no digits, should fail
-  EXPECT_FALSE(S.consumeInteger(Value));
+  EXPECT_FALSE(s.consume_integer(value));
 }
 
-TEST(StringRefTest, ConsumeIntegerLeadingZero) {
-  StringRef S("007");
-  int Value = -1;
+TEST(kmp_str_ref_test, ConsumeIntegerLeadingZero) {
+  kmp_str_ref s("007");
+  int value = -1;
 
-  EXPECT_TRUE(S.consumeInteger(Value));
-  EXPECT_EQ(Value, 7);
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_TRUE(s.consume_integer(value));
+  EXPECT_EQ(value, 7);
+  EXPECT_EQ(s.length(), 0u);
 }
 
-TEST(StringRefTest, ConsumeIntegerNegativeAllowed) {
-  StringRef S("-42rest");
-  int Value = 0;
+TEST(kmp_str_ref_test, ConsumeIntegerNegativeAllowed) {
+  kmp_str_ref s("-42rest");
+  int value = 0;
 
-  EXPECT_TRUE(S.consumeInteger(Value, true, true));
-  EXPECT_EQ(Value, -42);
-  EXPECT_TRUE(equals(S, "rest"));
+  EXPECT_TRUE(s.consume_integer(value, true, true));
+  EXPECT_EQ(value, -42);
+  EXPECT_TRUE(equals(s, "rest"));
 }
 
-TEST(StringRefTest, ConsumeIntegerNegativeNotAllowed) {
-  StringRef S("-42");
-  int Value = 0;
+TEST(kmp_str_ref_test, ConsumeIntegerNegativeNotAllowed) {
+  kmp_str_ref s("-42");
+  int value = 0;
 
-  EXPECT_FALSE(S.consumeInteger(Value, true, false));
+  EXPECT_FALSE(s.consume_integer(value, true, false));
   // State should be restored on failure
-  EXPECT_TRUE(equals(S, "-42"));
+  EXPECT_TRUE(equals(s, "-42"));
 }
 
-TEST(StringRefTest, ConsumeIntegerMultipleDigits) {
-  StringRef S("1234567890");
-  int Value = 0;
+TEST(kmp_str_ref_test, ConsumeIntegerMultipleDigits) {
+  kmp_str_ref s("1234567890");
+  int value = 0;
 
-  EXPECT_TRUE(S.consumeInteger(Value));
-  EXPECT_EQ(Value, 1234567890);
+  EXPECT_TRUE(s.consume_integer(value));
+  EXPECT_EQ(value, 1234567890);
 }
 
 //===----------------------------------------------------------------------===//
 // copy
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, Copy) {
-  StringRef S("Hello");
-  char *Copied = S.copy();
+TEST(kmp_str_ref_test, Copy) {
+  kmp_str_ref s("Hello");
+  char *copied = s.copy();
 
-  EXPECT_NE(Copied, nullptr);
-  EXPECT_STREQ(Copied, "Hello");
-  EXPECT_NE(Copied, S.begin()); // Different pointer
+  EXPECT_NE(copied, nullptr);
+  EXPECT_STREQ(copied, "Hello");
+  EXPECT_NE(copied, s.begin()); // Different pointer
 
-  KMP_INTERNAL_FREE(Copied);
+  KMP_INTERNAL_FREE(copied);
 }
 
-TEST(StringRefTest, CopyEmpty) {
-  StringRef S("");
-  char *Copied = S.copy();
+TEST(kmp_str_ref_test, CopyEmpty) {
+  kmp_str_ref s("");
+  char *copied = s.copy();
 
-  EXPECT_NE(Copied, nullptr);
-  EXPECT_STREQ(Copied, "");
+  EXPECT_NE(copied, nullptr);
+  EXPECT_STREQ(copied, "");
 
-  KMP_INTERNAL_FREE(Copied);
+  KMP_INTERNAL_FREE(copied);
 }
 
-TEST(StringRefTest, CopySubstring) {
-  // Test copying a substring that doesn't have a null terminator at Len
-  StringRef Full("device-0)rest");
-  StringRef Sub = Full.takeWhile([](char C) { return C != ')'; });
+TEST(kmp_str_ref_test, CopySubstring) {
+  // Test copying a substring that doesn't have a null terminator at len
+  kmp_str_ref full("device-0)rest");
+  kmp_str_ref sub = full.take_while([](char c) { return c != ')'; });
 
-  EXPECT_EQ(Sub.length(), 8u); // "device-0"
+  EXPECT_EQ(sub.length(), 8u); // "device-0"
 
-  char *Copied = Sub.copy();
+  char *copied = sub.copy();
 
-  EXPECT_NE(Copied, nullptr);
-  EXPECT_STREQ(Copied, "device-0"); // Should NOT include ")"
-  EXPECT_EQ(strlen(Copied), 8u);
+  EXPECT_NE(copied, nullptr);
+  EXPECT_STREQ(copied, "device-0"); // Should NOT include ")"
+  EXPECT_EQ(strlen(copied), 8u);
 
-  KMP_INTERNAL_FREE(Copied);
-}
-
-//===----------------------------------------------------------------------===//
-// dropFront
-//===----------------------------------------------------------------------===//
-
-TEST(StringRefTest, DropFront) {
-  StringRef S("Hello World");
-
-  S.dropFront(6);
-
-  EXPECT_EQ(S.length(), 5u);
-  EXPECT_TRUE(equals(S, "World"));
-}
-
-TEST(StringRefTest, DropFrontZero) {
-  StringRef S("Hello");
-
-  S.dropFront(0);
-
-  EXPECT_EQ(S.length(), 5u);
-  EXPECT_TRUE(equals(S, "Hello"));
-}
-
-TEST(StringRefTest, DropFrontAll) {
-  StringRef S("Hello");
-
-  S.dropFront(5);
-
-  EXPECT_EQ(S.length(), 0u);
-}
-
-TEST(StringRefTest, DropFrontMoreThanLength) {
-  StringRef S("Hi");
-
-  S.dropFront(100);
-
-  EXPECT_EQ(S.length(), 0u);
+  KMP_INTERNAL_FREE(copied);
 }
 
 //===----------------------------------------------------------------------===//
-// dropWhile
+// drop_front
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, DropWhileDigits) {
-  StringRef S("123abc");
+TEST(kmp_str_ref_test, DropFront) {
+  kmp_str_ref s("Hello World");
 
-  S.dropWhile([](char C) {
-    return static_cast<bool>(isdigit(static_cast<unsigned char>(C)));
+  s.drop_front(6);
+
+  EXPECT_EQ(s.length(), 5u);
+  EXPECT_TRUE(equals(s, "World"));
+}
+
+TEST(kmp_str_ref_test, DropFrontZero) {
+  kmp_str_ref s("Hello");
+
+  s.drop_front(0);
+
+  EXPECT_EQ(s.length(), 5u);
+  EXPECT_TRUE(equals(s, "Hello"));
+}
+
+TEST(kmp_str_ref_test, DropFrontAll) {
+  kmp_str_ref s("Hello");
+
+  s.drop_front(5);
+
+  EXPECT_EQ(s.length(), 0u);
+}
+
+TEST(kmp_str_ref_test, DropFrontMoreThanLength) {
+  kmp_str_ref s("Hi");
+
+  s.drop_front(100);
+
+  EXPECT_EQ(s.length(), 0u);
+}
+
+//===----------------------------------------------------------------------===//
+// drop_while
+//===----------------------------------------------------------------------===//
+
+TEST(kmp_str_ref_test, DropWhileDigits) {
+  kmp_str_ref s("123abc");
+
+  s.drop_while([](char c) {
+    return static_cast<bool>(isdigit(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_TRUE(equals(S, "abc"));
+  EXPECT_TRUE(equals(s, "abc"));
 }
 
-TEST(StringRefTest, DropWhileSpaces) {
-  StringRef S("   hello");
+TEST(kmp_str_ref_test, DropWhileSpaces) {
+  kmp_str_ref s("   hello");
 
-  S.dropWhile([](char C) { return C == ' '; });
+  s.drop_while([](char c) { return c == ' '; });
 
-  EXPECT_TRUE(equals(S, "hello"));
+  EXPECT_TRUE(equals(s, "hello"));
 }
 
-TEST(StringRefTest, DropWhileNone) {
-  StringRef S("hello");
+TEST(kmp_str_ref_test, DropWhileNone) {
+  kmp_str_ref s("hello");
 
-  S.dropWhile([](char C) { return C == ' '; });
+  s.drop_while([](char c) { return c == ' '; });
 
-  EXPECT_TRUE(equals(S, "hello"));
+  EXPECT_TRUE(equals(s, "hello"));
 }
 
-TEST(StringRefTest, DropWhileAll) {
-  StringRef S("12345");
+TEST(kmp_str_ref_test, DropWhileAll) {
+  kmp_str_ref s("12345");
 
-  S.dropWhile([](char C) {
-    return static_cast<bool>(isdigit(static_cast<unsigned char>(C)));
+  s.drop_while([](char c) {
+    return static_cast<bool>(isdigit(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_EQ(s.length(), 0u);
 }
 
 //===----------------------------------------------------------------------===//
-// skipSpace
+// skip_space
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, SkipSpace) {
-  StringRef S("   hello");
+TEST(kmp_str_ref_test, SkipSpace) {
+  kmp_str_ref s("   hello");
 
-  S.skipSpace();
+  s.skip_space();
 
-  EXPECT_TRUE(equals(S, "hello"));
+  EXPECT_TRUE(equals(s, "hello"));
 }
 
-TEST(StringRefTest, SkipSpaceNoSpaces) {
-  StringRef S("hello");
+TEST(kmp_str_ref_test, SkipSpaceNoSpaces) {
+  kmp_str_ref s("hello");
 
-  S.skipSpace();
+  s.skip_space();
 
-  EXPECT_TRUE(equals(S, "hello"));
+  EXPECT_TRUE(equals(s, "hello"));
 }
 
-TEST(StringRefTest, SkipSpaceAllSpaces) {
-  StringRef S("     ");
+TEST(kmp_str_ref_test, SkipSpaceAllSpaces) {
+  kmp_str_ref s("     ");
 
-  S.skipSpace();
+  s.skip_space();
 
-  EXPECT_EQ(S.length(), 0u);
+  EXPECT_EQ(s.length(), 0u);
 }
 
-TEST(StringRefTest, SkipSpaceOnlyLeading) {
-  StringRef S("  hello world  ");
+TEST(kmp_str_ref_test, SkipSpaceOnlyLeading) {
+  kmp_str_ref s("  hello world  ");
 
-  S.skipSpace();
+  s.skip_space();
 
-  EXPECT_TRUE(equals(S, "hello world  "));
+  EXPECT_TRUE(equals(s, "hello world  "));
 }
 
-TEST(StringRefTest, SkipSpaceWithTabs) {
-  StringRef S("\t\n  hello");
+TEST(kmp_str_ref_test, SkipSpaceWithTabs) {
+  kmp_str_ref s("\t\n  hello");
 
-  S.skipSpace();
+  s.skip_space();
 
-  EXPECT_TRUE(equals(S, "hello"));
+  EXPECT_TRUE(equals(s, "hello"));
 }
 
 //===----------------------------------------------------------------------===//
-// takeWhile
+// take_while
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, TakeWhileDigits) {
-  StringRef S("123abc");
+TEST(kmp_str_ref_test, TakeWhileDigits) {
+  kmp_str_ref s("123abc");
 
-  StringRef Digits = S.takeWhile([](char C) {
-    return static_cast<bool>(isdigit(static_cast<unsigned char>(C)));
+  kmp_str_ref digits = s.take_while([](char c) {
+    return static_cast<bool>(isdigit(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_EQ(Digits.length(), 3u);
-  EXPECT_TRUE(equals(Digits, "123"));
+  EXPECT_EQ(digits.length(), 3u);
+  EXPECT_TRUE(equals(digits, "123"));
   // Original unchanged
-  EXPECT_EQ(S.length(), 6u);
+  EXPECT_EQ(s.length(), 6u);
 }
 
-TEST(StringRefTest, TakeWhileAlpha) {
-  StringRef S("hello123");
+TEST(kmp_str_ref_test, TakeWhileAlpha) {
+  kmp_str_ref s("hello123");
 
-  StringRef Alpha = S.takeWhile([](char C) {
-    return static_cast<bool>(isalpha(static_cast<unsigned char>(C)));
+  kmp_str_ref alpha = s.take_while([](char c) {
+    return static_cast<bool>(isalpha(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_EQ(Alpha.length(), 5u);
-  EXPECT_TRUE(equals(Alpha, "hello"));
+  EXPECT_EQ(alpha.length(), 5u);
+  EXPECT_TRUE(equals(alpha, "hello"));
 }
 
-TEST(StringRefTest, TakeWhileNone) {
-  StringRef S("123abc");
+TEST(kmp_str_ref_test, TakeWhileNone) {
+  kmp_str_ref s("123abc");
 
-  StringRef Result = S.takeWhile([](char C) {
-    return static_cast<bool>(isalpha(static_cast<unsigned char>(C)));
+  kmp_str_ref result = s.take_while([](char c) {
+    return static_cast<bool>(isalpha(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_EQ(Result.length(), 0u);
+  EXPECT_EQ(result.length(), 0u);
 }
 
-TEST(StringRefTest, TakeWhileAll) {
-  StringRef S("hello");
+TEST(kmp_str_ref_test, TakeWhileAll) {
+  kmp_str_ref s("hello");
 
-  StringRef Result = S.takeWhile([](char C) {
-    return static_cast<bool>(isalpha(static_cast<unsigned char>(C)));
+  kmp_str_ref result = s.take_while([](char c) {
+    return static_cast<bool>(isalpha(static_cast<unsigned char>(c)));
   });
 
-  EXPECT_EQ(Result.length(), 5u);
-  EXPECT_TRUE(equals(Result, "hello"));
+  EXPECT_EQ(result.length(), 5u);
+  EXPECT_TRUE(equals(result, "hello"));
 }
 
 //===----------------------------------------------------------------------===//
 // Integration / Complex Scenarios
 //===----------------------------------------------------------------------===//
 
-TEST(StringRefTest, ParseKeyValuePair) {
-  StringRef S("key=value");
+TEST(kmp_str_ref_test, ParseKeyValuePair) {
+  kmp_str_ref s("key=value");
 
-  StringRef Key = S.takeWhile([](char C) { return C != '='; });
-  S.dropFront(Key.length());
-  S.consumeFront("=");
+  kmp_str_ref key = s.take_while([](char c) { return c != '='; });
+  s.drop_front(key.length());
+  s.consume_front("=");
 
-  EXPECT_EQ(Key.length(), 3u);
-  EXPECT_TRUE(equals(Key, "key"));
-  EXPECT_TRUE(equals(S, "value"));
+  EXPECT_EQ(key.length(), 3u);
+  EXPECT_TRUE(equals(key, "key"));
+  EXPECT_TRUE(equals(s, "value"));
 }
 
-TEST(StringRefTest, ParseCommaSeparated) {
-  StringRef S("1,2,3");
-  int Values[3] = {0, 0, 0};
-  int Count = 0;
+TEST(kmp_str_ref_test, ParseCommaSeparated) {
+  kmp_str_ref s("1,2,3");
+  int values[3] = {0, 0, 0};
+  int count = 0;
 
-  while (S.length() > 0 && Count < 3) {
-    S.consumeInteger(Values[Count++]);
-    S.consumeFront(",");
+  while (s.length() > 0 && count < 3) {
+    s.consume_integer(values[count++]);
+    s.consume_front(",");
   }
 
-  EXPECT_EQ(Count, 3);
-  EXPECT_EQ(Values[0], 1);
-  EXPECT_EQ(Values[1], 2);
-  EXPECT_EQ(Values[2], 3);
+  EXPECT_EQ(count, 3);
+  EXPECT_EQ(values[0], 1);
+  EXPECT_EQ(values[1], 2);
+  EXPECT_EQ(values[2], 3);
 }
 
-TEST(StringRefTest, ParseWithWhitespace) {
-  StringRef S("  hello  world  ");
+TEST(kmp_str_ref_test, ParseWithWhitespace) {
+  kmp_str_ref s("  hello  world  ");
 
-  S.skipSpace();
-  StringRef Word1 = S.takeWhile([](char C) { return C != ' '; });
-  S.dropFront(Word1.length());
-  S.skipSpace();
-  StringRef Word2 = S.takeWhile([](char C) { return C != ' '; });
+  s.skip_space();
+  kmp_str_ref word1 = s.take_while([](char c) { return c != ' '; });
+  s.drop_front(word1.length());
+  s.skip_space();
+  kmp_str_ref word2 = s.take_while([](char c) { return c != ' '; });
 
-  EXPECT_EQ(Word1.length(), 5u);
-  EXPECT_TRUE(equals(Word1, "hello"));
-  EXPECT_EQ(Word2.length(), 5u);
-  EXPECT_TRUE(equals(Word2, "world"));
+  EXPECT_EQ(word1.length(), 5u);
+  EXPECT_TRUE(equals(word1, "hello"));
+  EXPECT_EQ(word2.length(), 5u);
+  EXPECT_TRUE(equals(word2, "world"));
 }
 
 } // namespace

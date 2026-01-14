@@ -14,740 +14,750 @@ using namespace kmp_trait;
 namespace {
 
 //===----------------------------------------------------------------------===//
-// OMPWildcardTrait Tests
+// kmp_wildcard_trait Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPWildcardTraitTest, MatchesAnyDevice) {
-  OMPWildcardTrait *Trait = new OMPWildcardTrait();
+TEST(kmp_wildcard_trait_test, MatchesAnyDevice) {
+  kmp_wildcard_trait *trait = new kmp_wildcard_trait();
 
-  EXPECT_TRUE(Trait->match(0));
-  EXPECT_TRUE(Trait->match(1));
-  EXPECT_TRUE(Trait->match(100));
-  EXPECT_TRUE(Trait->match(-1));
+  EXPECT_TRUE(trait->match(0));
+  EXPECT_TRUE(trait->match(1));
+  EXPECT_TRUE(trait->match(100));
+  EXPECT_TRUE(trait->match(-1));
 
-  delete Trait;
+  delete trait;
 }
 
-TEST(OMPWildcardTraitTest, Equality) {
-  OMPWildcardTrait *T1 = new OMPWildcardTrait();
-  OMPWildcardTrait *T2 = new OMPWildcardTrait();
+TEST(kmp_wildcard_trait_test, Equality) {
+  kmp_wildcard_trait *t1 = new kmp_wildcard_trait();
+  kmp_wildcard_trait *t2 = new kmp_wildcard_trait();
 
-  EXPECT_TRUE(*T1 == *T2);
+  EXPECT_TRUE(*t1 == *t2);
 
-  delete T1;
-  delete T2;
-}
-
-//===----------------------------------------------------------------------===//
-// OMPLiteralTrait Tests
-//===----------------------------------------------------------------------===//
-
-TEST(OMPLiteralTraitTest, MatchesExactDevice) {
-  OMPLiteralTrait *Trait = new OMPLiteralTrait(5);
-
-  EXPECT_TRUE(Trait->match(5));
-  EXPECT_FALSE(Trait->match(0));
-  EXPECT_FALSE(Trait->match(4));
-  EXPECT_FALSE(Trait->match(6));
-
-  delete Trait;
-}
-
-TEST(OMPLiteralTraitTest, MatchesZero) {
-  OMPLiteralTrait *Trait = new OMPLiteralTrait(0);
-
-  EXPECT_TRUE(Trait->match(0));
-  EXPECT_FALSE(Trait->match(1));
-
-  delete Trait;
-}
-
-TEST(OMPLiteralTraitTest, MatchesNegative) {
-  OMPLiteralTrait *Trait = new OMPLiteralTrait(-1);
-
-  EXPECT_TRUE(Trait->match(-1));
-  EXPECT_FALSE(Trait->match(0));
-  EXPECT_FALSE(Trait->match(1));
-
-  delete Trait;
-}
-
-TEST(OMPLiteralTraitTest, EqualitySameValue) {
-  OMPLiteralTrait *T1 = new OMPLiteralTrait(42);
-  OMPLiteralTrait *T2 = new OMPLiteralTrait(42);
-
-  EXPECT_TRUE(*T1 == *T2);
-
-  delete T1;
-  delete T2;
-}
-
-TEST(OMPLiteralTraitTest, EqualityDifferentValue) {
-  OMPLiteralTrait *T1 = new OMPLiteralTrait(1);
-  OMPLiteralTrait *T2 = new OMPLiteralTrait(2);
-
-  EXPECT_FALSE(*T1 == *T2);
-
-  delete T1;
-  delete T2;
+  delete t1;
+  delete t2;
 }
 
 //===----------------------------------------------------------------------===//
-// OMPUIDTrait Tests
+// kmp_literal_trait Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPUIDTraitTest, Construction) {
-  OMPUIDTrait *Trait = new OMPUIDTrait(StringRef("test-uid"));
+TEST(kmp_literal_trait_test, MatchesExactDevice) {
+  kmp_literal_trait *trait = new kmp_literal_trait(5);
+
+  EXPECT_TRUE(trait->match(5));
+  EXPECT_FALSE(trait->match(0));
+  EXPECT_FALSE(trait->match(4));
+  EXPECT_FALSE(trait->match(6));
+
+  delete trait;
+}
+
+TEST(kmp_literal_trait_test, MatchesZero) {
+  kmp_literal_trait *trait = new kmp_literal_trait(0);
+
+  EXPECT_TRUE(trait->match(0));
+  EXPECT_FALSE(trait->match(1));
+
+  delete trait;
+}
+
+TEST(kmp_literal_trait_test, MatchesNegative) {
+  kmp_literal_trait *trait = new kmp_literal_trait(-1);
+
+  EXPECT_TRUE(trait->match(-1));
+  EXPECT_FALSE(trait->match(0));
+  EXPECT_FALSE(trait->match(1));
+
+  delete trait;
+}
+
+TEST(kmp_literal_trait_test, EqualitySameValue) {
+  kmp_literal_trait *t1 = new kmp_literal_trait(42);
+  kmp_literal_trait *t2 = new kmp_literal_trait(42);
+
+  EXPECT_TRUE(*t1 == *t2);
+
+  delete t1;
+  delete t2;
+}
+
+TEST(kmp_literal_trait_test, EqualityDifferentValue) {
+  kmp_literal_trait *t1 = new kmp_literal_trait(1);
+  kmp_literal_trait *t2 = new kmp_literal_trait(2);
+
+  EXPECT_FALSE(*t1 == *t2);
+
+  delete t1;
+  delete t2;
+}
+
+//===----------------------------------------------------------------------===//
+// kmp_uid_trait Tests
+//===----------------------------------------------------------------------===//
+
+TEST(kmp_uid_trait_test, Construction) {
+  kmp_uid_trait *trait = new kmp_uid_trait(kmp_str_ref("test-uid"));
 
   // Just verify it can be constructed without crashing
-  delete Trait;
+  delete trait;
 }
 
-TEST(OMPUIDTraitTest, MatchWithMock) {
-  OMPUIDTrait *Trait = new OMPUIDTrait(StringRef("device-0"));
+TEST(kmp_uid_trait_test, MatchWithMock) {
+  kmp_uid_trait *trait = new kmp_uid_trait(kmp_str_ref("device-0"));
 
   // Uses the mock omp_get_uid_from_device
-  EXPECT_TRUE(Trait->match(0)); // device-0 matches
-  EXPECT_FALSE(Trait->match(1)); // device-1 doesn't match
-  EXPECT_FALSE(Trait->match(2)); // device-2 doesn't match
+  EXPECT_TRUE(trait->match(0)); // device-0 matches
+  EXPECT_FALSE(trait->match(1)); // device-1 doesn't match
+  EXPECT_FALSE(trait->match(2)); // device-2 doesn't match
 
-  delete Trait;
+  delete trait;
 }
 
-TEST(OMPUIDTraitTest, MatchWithCustomMock) {
-  OMPUIDTrait *Trait = new OMPUIDTrait(StringRef("custom-uid"));
+TEST(kmp_uid_trait_test, MatchWithCustomMock) {
+  kmp_uid_trait *trait = new kmp_uid_trait(kmp_str_ref("custom-uid"));
 
   // Set a custom mock function
-  Trait->setUIDFromDevice([](int Device) -> const char * {
-    return Device == 2 ? "custom-uid" : "other";
+  trait->set_uid_from_device([](int device) -> const char * {
+    return device == 2 ? "custom-uid" : "other";
   });
 
-  EXPECT_FALSE(Trait->match(0));
-  EXPECT_FALSE(Trait->match(1));
-  EXPECT_TRUE(Trait->match(2)); // custom-uid matches device 2
-  EXPECT_FALSE(Trait->match(3));
+  EXPECT_FALSE(trait->match(0));
+  EXPECT_FALSE(trait->match(1));
+  EXPECT_TRUE(trait->match(2)); // custom-uid matches device 2
+  EXPECT_FALSE(trait->match(3));
 
-  delete Trait;
+  delete trait;
 }
 
-TEST(OMPUIDTraitTest, EqualitySameUID) {
-  OMPUIDTrait *T1 = new OMPUIDTrait(StringRef("my-device"));
-  OMPUIDTrait *T2 = new OMPUIDTrait(StringRef("my-device"));
+TEST(kmp_uid_trait_test, EqualitySameUID) {
+  kmp_uid_trait *t1 = new kmp_uid_trait(kmp_str_ref("my-device"));
+  kmp_uid_trait *t2 = new kmp_uid_trait(kmp_str_ref("my-device"));
 
-  EXPECT_TRUE(*T1 == *T2);
+  EXPECT_TRUE(*t1 == *t2);
 
-  delete T1;
-  delete T2;
+  delete t1;
+  delete t2;
 }
 
-TEST(OMPUIDTraitTest, EqualityDifferentUID) {
-  OMPUIDTrait *T1 = new OMPUIDTrait(StringRef("device-a"));
-  OMPUIDTrait *T2 = new OMPUIDTrait(StringRef("device-b"));
+TEST(kmp_uid_trait_test, EqualityDifferentUID) {
+  kmp_uid_trait *t1 = new kmp_uid_trait(kmp_str_ref("device-a"));
+  kmp_uid_trait *t2 = new kmp_uid_trait(kmp_str_ref("device-b"));
 
-  EXPECT_FALSE(*T1 == *T2);
+  EXPECT_FALSE(*t1 == *t2);
 
-  delete T1;
-  delete T2;
+  delete t1;
+  delete t2;
 }
 
 //===----------------------------------------------------------------------===//
-// OMPTraitExprSingle Tests
+// kmp_trait_expr_single Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPTraitExprSingleTest, CreateAndDestroy) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle();
-  EXPECT_NE(Expr, nullptr);
-  delete Expr;
+TEST(kmp_trait_expr_single_test, CreateAndDestroy) {
+  kmp_trait_expr_single *expr = new kmp_trait_expr_single();
+  EXPECT_NE(expr, nullptr);
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, CreateWithTrait) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle(new OMPLiteralTrait(2));
+TEST(kmp_trait_expr_single_test, CreateWithTrait) {
+  kmp_trait_expr_single *expr =
+      new kmp_trait_expr_single(new kmp_literal_trait(2));
 
   // Mock: 4 devices
-  Expr->setNumDevices([]() { return 4; });
+  expr->set_num_devices([]() { return 4; });
 
-  EXPECT_TRUE(Expr->match(2));
-  EXPECT_FALSE(Expr->match(0));
-  EXPECT_FALSE(Expr->match(1));
-  EXPECT_FALSE(Expr->match(5)); // Out of range
+  EXPECT_TRUE(expr->match(2));
+  EXPECT_FALSE(expr->match(0));
+  EXPECT_FALSE(expr->match(1));
+  EXPECT_FALSE(expr->match(5)); // Out of range
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, SetTrait) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle();
-  Expr->setTrait(new OMPLiteralTrait(3));
+TEST(kmp_trait_expr_single_test, SetTrait) {
+  kmp_trait_expr_single *expr = new kmp_trait_expr_single();
+  expr->set_trait(new kmp_literal_trait(3));
 
   // Mock: 4 devices
-  Expr->setNumDevices([]() { return 4; });
+  expr->set_num_devices([]() { return 4; });
 
-  EXPECT_TRUE(Expr->match(3));
-  EXPECT_FALSE(Expr->match(0));
+  EXPECT_TRUE(expr->match(3));
+  EXPECT_FALSE(expr->match(0));
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, DefaultNotNegated) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle();
+TEST(kmp_trait_expr_single_test, DefaultNotNegated) {
+  kmp_trait_expr_single *expr = new kmp_trait_expr_single();
 
-  EXPECT_FALSE(Expr->isNegated());
+  EXPECT_FALSE(expr->is_negated());
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, SetNegated) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle();
+TEST(kmp_trait_expr_single_test, SetNegated) {
+  kmp_trait_expr_single *expr = new kmp_trait_expr_single();
 
-  Expr->setNegated(true);
-  EXPECT_TRUE(Expr->isNegated());
+  expr->set_negated(true);
+  EXPECT_TRUE(expr->is_negated());
 
-  Expr->setNegated(false);
-  EXPECT_FALSE(Expr->isNegated());
+  expr->set_negated(false);
+  EXPECT_FALSE(expr->is_negated());
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, MatchNegated) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle(new OMPLiteralTrait(2));
-  Expr->setNegated(true);
+TEST(kmp_trait_expr_single_test, MatchNegated) {
+  kmp_trait_expr_single *expr =
+      new kmp_trait_expr_single(new kmp_literal_trait(2));
+  expr->set_negated(true);
 
   // Mock: 4 devices
-  Expr->setNumDevices([]() { return 4; });
+  expr->set_num_devices([]() { return 4; });
 
   // Without negation: matches 2
   // With negation: matches everything in-range except 2
-  EXPECT_FALSE(Expr->match(2));
-  EXPECT_TRUE(Expr->match(0));
-  EXPECT_TRUE(Expr->match(1));
-  EXPECT_TRUE(Expr->match(3));
+  EXPECT_FALSE(expr->match(2));
+  EXPECT_TRUE(expr->match(0));
+  EXPECT_TRUE(expr->match(1));
+  EXPECT_TRUE(expr->match(3));
   // Out of range devices return false regardless of negation
-  EXPECT_FALSE(Expr->match(5));
+  EXPECT_FALSE(expr->match(5));
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, MatchWildcard) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle(new OMPWildcardTrait());
+TEST(kmp_trait_expr_single_test, MatchWildcard) {
+  kmp_trait_expr_single *expr =
+      new kmp_trait_expr_single(new kmp_wildcard_trait());
 
   // Mock: 4 devices
-  Expr->setNumDevices([]() { return 4; });
+  expr->set_num_devices([]() { return 4; });
 
   // Wildcard matches any in-range device
-  EXPECT_TRUE(Expr->match(0));
-  EXPECT_TRUE(Expr->match(3));
+  EXPECT_TRUE(expr->match(0));
+  EXPECT_TRUE(expr->match(3));
   // Out of range devices return false
-  EXPECT_FALSE(Expr->match(100));
+  EXPECT_FALSE(expr->match(100));
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, Evaluate) {
-  OMPTraitExprSingle *Expr = new OMPTraitExprSingle(new OMPLiteralTrait(1));
+TEST(kmp_trait_expr_single_test, Evaluate) {
+  kmp_trait_expr_single *expr =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
 
   // Mock: 3 devices
-  Expr->setNumDevices([]() { return 3; });
+  expr->set_num_devices([]() { return 3; });
 
-  Vector<int> Result = Expr->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
-  EXPECT_TRUE(Result.contains(1));
-  EXPECT_FALSE(Result.contains(0));
-  EXPECT_FALSE(Result.contains(2));
+  kmp_vector<int> result = expr->evaluate();
+  EXPECT_EQ(result.size(), 1u);
+  EXPECT_TRUE(result.contains(1));
+  EXPECT_FALSE(result.contains(0));
+  EXPECT_FALSE(result.contains(2));
 
-  delete Expr;
+  delete expr;
 }
 
-TEST(OMPTraitExprSingleTest, Equality) {
-  OMPTraitExprSingle *E1 = new OMPTraitExprSingle(new OMPLiteralTrait(1));
-  OMPTraitExprSingle *E2 = new OMPTraitExprSingle(new OMPLiteralTrait(1));
+TEST(kmp_trait_expr_single_test, Equality) {
+  kmp_trait_expr_single *e1 =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
+  kmp_trait_expr_single *e2 =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
 
-  EXPECT_TRUE(*E1 == *E2);
+  EXPECT_TRUE(*e1 == *e2);
 
-  delete E1;
-  delete E2;
+  delete e1;
+  delete e2;
 }
 
-TEST(OMPTraitExprSingleTest, EqualityDifferentTrait) {
-  OMPTraitExprSingle *E1 = new OMPTraitExprSingle(new OMPLiteralTrait(1));
-  OMPTraitExprSingle *E2 = new OMPTraitExprSingle(new OMPLiteralTrait(2));
+TEST(kmp_trait_expr_single_test, EqualityDifferentTrait) {
+  kmp_trait_expr_single *e1 =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
+  kmp_trait_expr_single *e2 =
+      new kmp_trait_expr_single(new kmp_literal_trait(2));
 
-  EXPECT_FALSE(*E1 == *E2);
+  EXPECT_FALSE(*e1 == *e2);
 
-  delete E1;
-  delete E2;
+  delete e1;
+  delete e2;
 }
 
-TEST(OMPTraitExprSingleTest, EqualityDifferentNegation) {
-  OMPTraitExprSingle *E1 = new OMPTraitExprSingle(new OMPLiteralTrait(1));
-  OMPTraitExprSingle *E2 = new OMPTraitExprSingle(new OMPLiteralTrait(1));
-  E2->setNegated(true);
+TEST(kmp_trait_expr_single_test, EqualityDifferentNegation) {
+  kmp_trait_expr_single *e1 =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
+  kmp_trait_expr_single *e2 =
+      new kmp_trait_expr_single(new kmp_literal_trait(1));
+  e2->set_negated(true);
 
-  EXPECT_FALSE(*E1 == *E2);
+  EXPECT_FALSE(*e1 == *e2);
 
-  delete E1;
-  delete E2;
+  delete e1;
+  delete e2;
 }
 
 //===----------------------------------------------------------------------===//
-// OMPTraitExprGroup Tests
+// kmp_trait_expr_group Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPTraitExprGroupTest, CreateAndDestroy) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  EXPECT_NE(Group, nullptr);
-  delete Group;
+TEST(kmp_trait_expr_group_test, CreateAndDestroy) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  EXPECT_NE(group, nullptr);
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, DefaultTypeIsOR) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, DefaultTypeIsOR) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  EXPECT_EQ(Group->getGroupType(), OMPTraitExprGroup::OR);
+  EXPECT_EQ(group->get_group_type(), kmp_trait_expr_group::OR);
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, SetTypeAND) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, SetTypeAND) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  Group->setGroupType(OMPTraitExprGroup::AND);
-  EXPECT_EQ(Group->getGroupType(), OMPTraitExprGroup::AND);
+  group->set_group_type(kmp_trait_expr_group::AND);
+  EXPECT_EQ(group->get_group_type(), kmp_trait_expr_group::AND);
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, DefaultNotNegated) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, DefaultNotNegated) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  EXPECT_FALSE(Group->isNegated());
+  EXPECT_FALSE(group->is_negated());
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, SetNegated) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, SetNegated) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  Group->setNegated(true);
-  EXPECT_TRUE(Group->isNegated());
+  group->set_negated(true);
+  EXPECT_TRUE(group->is_negated());
 
-  Group->setNegated(false);
-  EXPECT_FALSE(Group->isNegated());
+  group->set_negated(false);
+  EXPECT_FALSE(group->is_negated());
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, AddTraitDirectly) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, AddTraitDirectly) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  Group->addExpr(new OMPWildcardTrait());
+  group->add_expr(new kmp_wildcard_trait());
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
   // Wildcard matches any in-range device
-  EXPECT_TRUE(Group->match(0));
-  EXPECT_TRUE(Group->match(3));
+  EXPECT_TRUE(group->match(0));
+  EXPECT_TRUE(group->match(3));
   // Out of range devices return false
-  EXPECT_FALSE(Group->match(100));
+  EXPECT_FALSE(group->match(100));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, AddExpr) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, AddExpr) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  Group->addExpr(new OMPTraitExprSingle(new OMPLiteralTrait(2)));
+  group->add_expr(new kmp_trait_expr_single(new kmp_literal_trait(2)));
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
-  EXPECT_TRUE(Group->match(2));
-  EXPECT_FALSE(Group->match(0));
-  EXPECT_FALSE(Group->match(5)); // Out of range
+  EXPECT_TRUE(group->match(2));
+  EXPECT_FALSE(group->match(0));
+  EXPECT_FALSE(group->match(5)); // Out of range
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchORSemantics) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->setGroupType(OMPTraitExprGroup::OR);
+TEST(kmp_trait_expr_group_test, MatchORSemantics) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::OR);
 
-  Group->addExpr(new OMPLiteralTrait(1));
-  Group->addExpr(new OMPLiteralTrait(2));
-  Group->addExpr(new OMPLiteralTrait(3));
+  group->add_expr(new kmp_literal_trait(1));
+  group->add_expr(new kmp_literal_trait(2));
+  group->add_expr(new kmp_literal_trait(3));
 
   // Mock: 5 devices
-  Group->setNumDevices([]() { return 5; });
+  group->set_num_devices([]() { return 5; });
 
   // OR: matches if ANY trait matches
-  EXPECT_TRUE(Group->match(1));
-  EXPECT_TRUE(Group->match(2));
-  EXPECT_TRUE(Group->match(3));
-  EXPECT_FALSE(Group->match(0));
-  EXPECT_FALSE(Group->match(4));
+  EXPECT_TRUE(group->match(1));
+  EXPECT_TRUE(group->match(2));
+  EXPECT_TRUE(group->match(3));
+  EXPECT_FALSE(group->match(0));
+  EXPECT_FALSE(group->match(4));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchANDSemantics) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->setGroupType(OMPTraitExprGroup::AND);
+TEST(kmp_trait_expr_group_test, MatchANDSemantics) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::AND);
 
   // For AND to pass, ALL traits must match the same device
   // A single literal only matches one device
-  Group->addExpr(new OMPLiteralTrait(2));
+  group->add_expr(new kmp_literal_trait(2));
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
-  EXPECT_TRUE(Group->match(2));
-  EXPECT_FALSE(Group->match(0));
+  EXPECT_TRUE(group->match(2));
+  EXPECT_FALSE(group->match(0));
   // Out of range
-  EXPECT_FALSE(Group->match(5));
+  EXPECT_FALSE(group->match(5));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchANDWithWildcard) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->setGroupType(OMPTraitExprGroup::AND);
+TEST(kmp_trait_expr_group_test, MatchANDWithWildcard) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::AND);
 
-  Group->addExpr(new OMPWildcardTrait());
-  Group->addExpr(new OMPLiteralTrait(2));
+  group->add_expr(new kmp_wildcard_trait());
+  group->add_expr(new kmp_literal_trait(2));
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
   // Wildcard matches all, literal matches 2
   // AND: both must match
-  EXPECT_TRUE(Group->match(2));
-  EXPECT_FALSE(Group->match(0));
+  EXPECT_TRUE(group->match(2));
+  EXPECT_FALSE(group->match(0));
   // Out of range
-  EXPECT_FALSE(Group->match(5));
+  EXPECT_FALSE(group->match(5));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchNegated) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, MatchNegated) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
-  Group->addExpr(new OMPLiteralTrait(2));
-  Group->setNegated(true);
+  group->add_expr(new kmp_literal_trait(2));
+  group->set_negated(true);
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
   // Without negation: matches 2
   // With negation: matches everything in-range except 2
-  EXPECT_FALSE(Group->match(2));
-  EXPECT_TRUE(Group->match(0));
-  EXPECT_TRUE(Group->match(1));
-  EXPECT_TRUE(Group->match(3));
+  EXPECT_FALSE(group->match(2));
+  EXPECT_TRUE(group->match(0));
+  EXPECT_TRUE(group->match(1));
+  EXPECT_TRUE(group->match(3));
   // Out of range devices return false regardless of negation
-  EXPECT_FALSE(Group->match(5));
+  EXPECT_FALSE(group->match(5));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchEmptyGroupOR) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->setGroupType(OMPTraitExprGroup::OR);
+TEST(kmp_trait_expr_group_test, MatchEmptyGroupOR) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::OR);
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
   // Empty OR: no traits match, so result is false
-  EXPECT_FALSE(Group->match(0));
-  EXPECT_FALSE(Group->match(1));
+  EXPECT_FALSE(group->match(0));
+  EXPECT_FALSE(group->match(1));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, MatchEmptyGroupAND) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->setGroupType(OMPTraitExprGroup::AND);
+TEST(kmp_trait_expr_group_test, MatchEmptyGroupAND) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->set_group_type(kmp_trait_expr_group::AND);
 
   // Mock: 4 devices
-  Group->setNumDevices([]() { return 4; });
+  group->set_num_devices([]() { return 4; });
 
   // Empty AND: vacuously true (0 out of 0 traits match)
-  EXPECT_TRUE(Group->match(0));
-  EXPECT_TRUE(Group->match(1));
+  EXPECT_TRUE(group->match(0));
+  EXPECT_TRUE(group->match(1));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, EvaluateWithMock) {
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, EvaluateWithMock) {
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
 
   // Mock: 3 devices
-  Group->setNumDevices([]() { return 3; });
+  group->set_num_devices([]() { return 3; });
 
-  Group->addExpr(new OMPLiteralTrait(0));
-  Group->addExpr(new OMPLiteralTrait(2));
+  group->add_expr(new kmp_literal_trait(0));
+  group->add_expr(new kmp_literal_trait(2));
 
-  Vector<int> Result = Group->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
-  EXPECT_TRUE(Result.contains(0));
-  EXPECT_TRUE(Result.contains(2));
-  EXPECT_FALSE(Result.contains(1));
+  kmp_vector<int> result = group->evaluate();
+  EXPECT_EQ(result.size(), 2u);
+  EXPECT_TRUE(result.contains(0));
+  EXPECT_TRUE(result.contains(2));
+  EXPECT_FALSE(result.contains(1));
 
-  delete Group;
+  delete group;
 }
 
-TEST(OMPTraitExprGroupTest, Equality) {
-  OMPTraitExprGroup *G1 = new OMPTraitExprGroup();
-  OMPTraitExprGroup *G2 = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, Equality) {
+  kmp_trait_expr_group *g1 = new kmp_trait_expr_group();
+  kmp_trait_expr_group *g2 = new kmp_trait_expr_group();
 
-  G1->addExpr(new OMPLiteralTrait(1));
-  G2->addExpr(new OMPLiteralTrait(1));
+  g1->add_expr(new kmp_literal_trait(1));
+  g2->add_expr(new kmp_literal_trait(1));
 
-  EXPECT_TRUE(*G1 == *G2);
+  EXPECT_TRUE(*g1 == *g2);
 
-  delete G1;
-  delete G2;
+  delete g1;
+  delete g2;
 }
 
-TEST(OMPTraitExprGroupTest, EqualityDifferentNegation) {
-  OMPTraitExprGroup *G1 = new OMPTraitExprGroup();
-  OMPTraitExprGroup *G2 = new OMPTraitExprGroup();
+TEST(kmp_trait_expr_group_test, EqualityDifferentNegation) {
+  kmp_trait_expr_group *g1 = new kmp_trait_expr_group();
+  kmp_trait_expr_group *g2 = new kmp_trait_expr_group();
 
-  G1->addExpr(new OMPLiteralTrait(1));
-  G2->addExpr(new OMPLiteralTrait(1));
-  G2->setNegated(true);
+  g1->add_expr(new kmp_literal_trait(1));
+  g2->add_expr(new kmp_literal_trait(1));
+  g2->set_negated(true);
 
-  EXPECT_FALSE(*G1 == *G2);
+  EXPECT_FALSE(*g1 == *g2);
 
-  delete G1;
-  delete G2;
+  delete g1;
+  delete g2;
 }
 
-TEST(OMPTraitExprGroupTest, NestedGroups) {
-  OMPTraitExprGroup *Outer = new OMPTraitExprGroup();
-  Outer->setGroupType(OMPTraitExprGroup::OR);
+TEST(kmp_trait_expr_group_test, NestedGroups) {
+  kmp_trait_expr_group *outer = new kmp_trait_expr_group();
+  outer->set_group_type(kmp_trait_expr_group::OR);
 
-  OMPTraitExprGroup *Inner = new OMPTraitExprGroup();
-  Inner->setGroupType(OMPTraitExprGroup::AND);
-  Inner->addExpr(new OMPLiteralTrait(1));
-  Inner->addExpr(new OMPWildcardTrait());
+  kmp_trait_expr_group *inner = new kmp_trait_expr_group();
+  inner->set_group_type(kmp_trait_expr_group::AND);
+  inner->add_expr(new kmp_literal_trait(1));
+  inner->add_expr(new kmp_wildcard_trait());
 
-  Outer->addExpr(Inner);
-  Outer->addExpr(new OMPLiteralTrait(2));
+  outer->add_expr(inner);
+  outer->add_expr(new kmp_literal_trait(2));
 
   // Mock: 4 devices
-  Outer->setNumDevices([]() { return 4; });
+  outer->set_num_devices([]() { return 4; });
 
   // Inner matches device 1 (literal 1 AND wildcard)
   // Outer matches 1 OR 2
-  EXPECT_TRUE(Outer->match(1));
-  EXPECT_TRUE(Outer->match(2));
-  EXPECT_FALSE(Outer->match(0));
-  EXPECT_FALSE(Outer->match(3));
+  EXPECT_TRUE(outer->match(1));
+  EXPECT_TRUE(outer->match(2));
+  EXPECT_FALSE(outer->match(0));
+  EXPECT_FALSE(outer->match(3));
 
-  delete Outer;
+  delete outer;
 }
 
 //===----------------------------------------------------------------------===//
-// OMPTraitClause Tests
+// kmp_trait_clause Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPTraitClauseTest, CreateAndDestroy) {
-  OMPTraitClause *Clause = new OMPTraitClause();
-  EXPECT_NE(Clause, nullptr);
-  delete Clause;
+TEST(kmp_trait_clause_test, CreateAndDestroy) {
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  EXPECT_NE(clause, nullptr);
+  delete clause;
 }
 
-TEST(OMPTraitClauseTest, SetExprWithTrait) {
-  OMPTraitClause *Clause = new OMPTraitClause();
-  Clause->setExpr(new OMPLiteralTrait(2));
+TEST(kmp_trait_clause_test, SetExprWithTrait) {
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_literal_trait(2));
 
-  // The trait is wrapped in OMPTraitExprSingle internally
-  OMPTraitExpr *Expr = Clause->getExpr();
-  EXPECT_NE(Expr, nullptr);
+  // The trait is wrapped in kmp_trait_expr_single internally
+  kmp_trait_expr *expr = clause->get_expr();
+  EXPECT_NE(expr, nullptr);
 
-  delete Clause;
+  delete clause;
 }
 
-TEST(OMPTraitClauseTest, SetExprWithExpr) {
-  OMPTraitClause *Clause = new OMPTraitClause();
-  OMPTraitExprGroup *Group = new OMPTraitExprGroup();
-  Group->addExpr(new OMPLiteralTrait(1));
-  Clause->setExpr(Group);
+TEST(kmp_trait_clause_test, SetExprWithExpr) {
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  kmp_trait_expr_group *group = new kmp_trait_expr_group();
+  group->add_expr(new kmp_literal_trait(1));
+  clause->set_expr(group);
 
-  EXPECT_EQ(Clause->getExpr(), Group);
+  EXPECT_EQ(clause->get_expr(), group);
 
-  delete Clause;
+  delete clause;
 }
 
-TEST(OMPTraitClauseTest, Equality) {
-  OMPTraitClause *C1 = new OMPTraitClause();
-  OMPTraitClause *C2 = new OMPTraitClause();
+TEST(kmp_trait_clause_test, Equality) {
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  kmp_trait_clause *c2 = new kmp_trait_clause();
 
-  C1->setExpr(new OMPLiteralTrait(1));
-  C2->setExpr(new OMPLiteralTrait(1));
+  c1->set_expr(new kmp_literal_trait(1));
+  c2->set_expr(new kmp_literal_trait(1));
 
-  EXPECT_TRUE(*C1 == *C2);
+  EXPECT_TRUE(*c1 == *c2);
 
-  delete C1;
-  delete C2;
+  delete c1;
+  delete c2;
 }
 
-TEST(OMPTraitClauseTest, EqualityDifferentExprs) {
-  OMPTraitClause *C1 = new OMPTraitClause();
-  OMPTraitClause *C2 = new OMPTraitClause();
+TEST(kmp_trait_clause_test, EqualityDifferentExprs) {
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  kmp_trait_clause *c2 = new kmp_trait_clause();
 
-  C1->setExpr(new OMPLiteralTrait(1));
-  C2->setExpr(new OMPLiteralTrait(2));
+  c1->set_expr(new kmp_literal_trait(1));
+  c2->set_expr(new kmp_literal_trait(2));
 
-  EXPECT_FALSE(*C1 == *C2);
+  EXPECT_FALSE(*c1 == *c2);
 
-  delete C1;
-  delete C2;
+  delete c1;
+  delete c2;
 }
 
 //===----------------------------------------------------------------------===//
-// OMPTraitContext Tests
+// kmp_trait_context Tests
 //===----------------------------------------------------------------------===//
 
-TEST(OMPTraitContextTest, CreateAndDestroy) {
-  OMPTraitContext *Context = new OMPTraitContext();
-  EXPECT_NE(Context, nullptr);
-  delete Context;
+TEST(kmp_trait_context_test, CreateAndDestroy) {
+  kmp_trait_context *context = new kmp_trait_context();
+  EXPECT_NE(context, nullptr);
+  delete context;
 }
 
-TEST(OMPTraitContextTest, AddClause) {
-  OMPTraitContext *Context = new OMPTraitContext();
-  OMPTraitClause *Clause = new OMPTraitClause();
-  Clause->setExpr(new OMPLiteralTrait(2));
-  Context->addClause(Clause);
+TEST(kmp_trait_context_test, AddClause) {
+  kmp_trait_context *context = new kmp_trait_context();
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_literal_trait(2));
+  context->add_clause(clause);
 
   // Mock: 4 devices
-  Context->setNumDevices([]() { return 4; });
+  context->set_num_devices([]() { return 4; });
 
-  EXPECT_TRUE(Context->match(2));
-  EXPECT_FALSE(Context->match(0));
+  EXPECT_TRUE(context->match(2));
+  EXPECT_FALSE(context->match(0));
   // Out of range
-  EXPECT_FALSE(Context->match(5));
+  EXPECT_FALSE(context->match(5));
 
-  delete Context;
+  delete context;
 }
 
-TEST(OMPTraitContextTest, MultipleClauses) {
-  OMPTraitContext *Context = new OMPTraitContext();
+TEST(kmp_trait_context_test, MultipleClauses) {
+  kmp_trait_context *context = new kmp_trait_context();
 
-  OMPTraitClause *C1 = new OMPTraitClause();
-  C1->setExpr(new OMPLiteralTrait(1));
-  Context->addClause(C1);
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  context->add_clause(c1);
 
-  OMPTraitClause *C2 = new OMPTraitClause();
-  C2->setExpr(new OMPLiteralTrait(2));
-  Context->addClause(C2);
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(2));
+  context->add_clause(c2);
 
-  OMPTraitClause *C3 = new OMPTraitClause();
-  C3->setExpr(new OMPLiteralTrait(3));
-  Context->addClause(C3);
+  kmp_trait_clause *c3 = new kmp_trait_clause();
+  c3->set_expr(new kmp_literal_trait(3));
+  context->add_clause(c3);
 
   // Mock: 5 devices
-  Context->setNumDevices([]() { return 5; });
+  context->set_num_devices([]() { return 5; });
 
   // Context uses OR semantics between clauses
-  EXPECT_TRUE(Context->match(1));
-  EXPECT_TRUE(Context->match(2));
-  EXPECT_TRUE(Context->match(3));
-  EXPECT_FALSE(Context->match(0));
-  EXPECT_FALSE(Context->match(4));
+  EXPECT_TRUE(context->match(1));
+  EXPECT_TRUE(context->match(2));
+  EXPECT_TRUE(context->match(3));
+  EXPECT_FALSE(context->match(0));
+  EXPECT_FALSE(context->match(4));
 
-  delete Context;
+  delete context;
 }
 
-TEST(OMPTraitContextTest, EmptyContextMatchesNothing) {
-  OMPTraitContext *Context = new OMPTraitContext();
+TEST(kmp_trait_context_test, EmptyContextMatchesNothing) {
+  kmp_trait_context *context = new kmp_trait_context();
 
   // Mock: 4 devices
-  Context->setNumDevices([]() { return 4; });
+  context->set_num_devices([]() { return 4; });
 
-  EXPECT_FALSE(Context->match(0));
-  EXPECT_FALSE(Context->match(1));
+  EXPECT_FALSE(context->match(0));
+  EXPECT_FALSE(context->match(1));
 
-  delete Context;
+  delete context;
 }
 
-TEST(OMPTraitContextTest, WildcardClause) {
-  OMPTraitContext *Context = new OMPTraitContext();
-  OMPTraitClause *Clause = new OMPTraitClause();
-  Clause->setExpr(new OMPWildcardTrait());
-  Context->addClause(Clause);
+TEST(kmp_trait_context_test, WildcardClause) {
+  kmp_trait_context *context = new kmp_trait_context();
+  kmp_trait_clause *clause = new kmp_trait_clause();
+  clause->set_expr(new kmp_wildcard_trait());
+  context->add_clause(clause);
 
   // Mock: 4 devices
-  Context->setNumDevices([]() { return 4; });
+  context->set_num_devices([]() { return 4; });
 
   // In-range devices match
-  EXPECT_TRUE(Context->match(0));
-  EXPECT_TRUE(Context->match(3));
+  EXPECT_TRUE(context->match(0));
+  EXPECT_TRUE(context->match(3));
   // Out of range devices return false
-  EXPECT_FALSE(Context->match(100));
-  EXPECT_FALSE(Context->match(-1));
+  EXPECT_FALSE(context->match(100));
+  EXPECT_FALSE(context->match(-1));
 
-  delete Context;
+  delete context;
 }
 
-TEST(OMPTraitContextTest, EvaluateWithMock) {
-  OMPTraitContext *Context = new OMPTraitContext();
+TEST(kmp_trait_context_test, EvaluateWithMock) {
+  kmp_trait_context *context = new kmp_trait_context();
 
   // Mock: 5 devices
-  Context->setNumDevices([]() { return 5; });
+  context->set_num_devices([]() { return 5; });
 
-  OMPTraitClause *C1 = new OMPTraitClause();
-  C1->setExpr(new OMPLiteralTrait(1));
-  Context->addClause(C1);
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  context->add_clause(c1);
 
-  OMPTraitClause *C2 = new OMPTraitClause();
-  C2->setExpr(new OMPLiteralTrait(3));
-  Context->addClause(C2);
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(3));
+  context->add_clause(c2);
 
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
-  EXPECT_TRUE(Result.contains(1));
-  EXPECT_TRUE(Result.contains(3));
-  EXPECT_FALSE(Result.contains(0));
-  EXPECT_FALSE(Result.contains(2));
-  EXPECT_FALSE(Result.contains(4));
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
+  EXPECT_TRUE(result.contains(1));
+  EXPECT_TRUE(result.contains(3));
+  EXPECT_FALSE(result.contains(0));
+  EXPECT_FALSE(result.contains(2));
+  EXPECT_FALSE(result.contains(4));
 
-  delete Context;
+  delete context;
 }
 
-TEST(OMPTraitContextTest, Equality) {
-  OMPTraitContext *Ctx1 = new OMPTraitContext();
-  OMPTraitContext *Ctx2 = new OMPTraitContext();
+TEST(kmp_trait_context_test, Equality) {
+  kmp_trait_context *ctx1 = new kmp_trait_context();
+  kmp_trait_context *ctx2 = new kmp_trait_context();
 
-  OMPTraitClause *C1 = new OMPTraitClause();
-  C1->setExpr(new OMPLiteralTrait(1));
-  Ctx1->addClause(C1);
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  ctx1->add_clause(c1);
 
-  OMPTraitClause *C2 = new OMPTraitClause();
-  C2->setExpr(new OMPLiteralTrait(1));
-  Ctx2->addClause(C2);
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(1));
+  ctx2->add_clause(c2);
 
-  EXPECT_TRUE(*Ctx1 == *Ctx2);
+  EXPECT_TRUE(*ctx1 == *ctx2);
 
-  delete Ctx1;
-  delete Ctx2;
+  delete ctx1;
+  delete ctx2;
 }
 
-TEST(OMPTraitContextTest, EqualityDifferentClauses) {
-  OMPTraitContext *Ctx1 = new OMPTraitContext();
-  OMPTraitContext *Ctx2 = new OMPTraitContext();
+TEST(kmp_trait_context_test, EqualityDifferentClauses) {
+  kmp_trait_context *ctx1 = new kmp_trait_context();
+  kmp_trait_context *ctx2 = new kmp_trait_context();
 
-  OMPTraitClause *C1 = new OMPTraitClause();
-  C1->setExpr(new OMPLiteralTrait(1));
-  Ctx1->addClause(C1);
+  kmp_trait_clause *c1 = new kmp_trait_clause();
+  c1->set_expr(new kmp_literal_trait(1));
+  ctx1->add_clause(c1);
 
-  OMPTraitClause *C2 = new OMPTraitClause();
-  C2->setExpr(new OMPLiteralTrait(2));
-  Ctx2->addClause(C2);
+  kmp_trait_clause *c2 = new kmp_trait_clause();
+  c2->set_expr(new kmp_literal_trait(2));
+  ctx2->add_clause(c2);
 
-  EXPECT_FALSE(*Ctx1 == *Ctx2);
+  EXPECT_FALSE(*ctx1 == *ctx2);
 
-  delete Ctx1;
-  delete Ctx2;
+  delete ctx1;
+  delete ctx2;
 }
 
 } // namespace

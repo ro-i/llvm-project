@@ -19,58 +19,60 @@
 namespace kmp_trait {
 
 extern "C" int omp_get_num_devices();
-extern "C" const char *omp_get_uid_from_device(int DeviceNum);
+extern "C" const char *omp_get_uid_from_device(int device_num);
 
-class OMPTrait {
+class kmp_trait {
 protected:
-  enum TraitType { WILDCARD_T, LITERAL_T, UID_T };
-  TraitType _Type;
+  enum trait_type { WILDCARD_T, LITERAL_T, UID_T };
+  trait_type _type;
 
-  OMPTrait(TraitType Type) : _Type(Type) {}
+  kmp_trait(trait_type type) : _type(type) {}
 
 public:
-  virtual ~OMPTrait() = default;
+  virtual ~kmp_trait() = default;
 
-  OMPTrait(const OMPTrait &) = delete;
-  OMPTrait(OMPTrait &&) = delete;
-  OMPTrait &operator=(const OMPTrait &) = delete;
-  OMPTrait &operator=(OMPTrait &&) = delete;
+  kmp_trait(const kmp_trait &) = delete;
+  kmp_trait(kmp_trait &&) = delete;
+  kmp_trait &operator=(const kmp_trait &) = delete;
+  kmp_trait &operator=(kmp_trait &&) = delete;
 
-  virtual bool match(int Device) const = 0;
+  virtual bool match(int device) const = 0;
 
   // Use KMP_INTERNAL_MALLOC/KMP_INTERNAL_FREE for memory management.
-  void *operator new(size_t Size) { return KMP_INTERNAL_MALLOC(Size); }
-  void operator delete(void *Ptr) { KMP_INTERNAL_FREE(Ptr); }
+  void *operator new(size_t size) { return KMP_INTERNAL_MALLOC(size); }
+  void operator delete(void *ptr) { KMP_INTERNAL_FREE(ptr); }
 
-  virtual bool operator==(const OMPTrait &Other) const {
-    return _Type == Other._Type;
+  virtual bool operator==(const kmp_trait &other) const {
+    return _type == other._type;
   }
 };
 
 /// Represents a wildcard trait that matches any device.
-class OMPWildcardTrait final : public OMPTrait {
+class kmp_wildcard_trait final : public kmp_trait {
 public:
-  OMPWildcardTrait() : OMPTrait(WILDCARD_T) {}
+  kmp_wildcard_trait() : kmp_trait(WILDCARD_T) {}
 
-  bool match(int Device) const override { return true; }
+  bool match([[maybe_unused]] int device) const override { return true; }
 
-  bool operator==(const OMPTrait &Other) const override {
-    return OMPTrait::operator==(Other);
+  bool operator==(const kmp_trait &other) const override {
+    return kmp_trait::operator==(other);
   }
 };
 
 /// Represents a specific device number.
-class OMPLiteralTrait final : public OMPTrait {
-  int DeviceNum;
+class kmp_literal_trait final : public kmp_trait {
+  int device_num;
 
 public:
-  OMPLiteralTrait(int DeviceNum) : OMPTrait(LITERAL_T), DeviceNum(DeviceNum) {}
+  kmp_literal_trait(int device_num)
+      : kmp_trait(LITERAL_T), device_num(device_num) {}
 
-  bool match(int Device) const override { return DeviceNum == Device; }
+  bool match(int device) const override { return device_num == device; }
 
-  bool operator==(const OMPTrait &Other) const override {
-    return OMPTrait::operator==(Other) &&
-           DeviceNum == static_cast<const OMPLiteralTrait &>(Other).DeviceNum;
+  bool operator==(const kmp_trait &other) const override {
+    return kmp_trait::operator==(other) &&
+           device_num ==
+               static_cast<const kmp_literal_trait &>(other).device_num;
   }
 };
 
@@ -79,280 +81,281 @@ public:
 /// might not be initialized yet. This is why we delay calls to
 /// omp_get_uid_from_device / omp_get_device_from_uid until the trait is
 /// evaluated.
-class OMPUIDTrait final : public OMPTrait {
-  char *UID;
+class kmp_uid_trait final : public kmp_trait {
+  char *uid;
   // Can be used by unit tests to mock omp_get_uid_from_device.
-  const char *(*getUIDFromDevice)(int Device) = omp_get_uid_from_device;
+  const char *(*get_uid_from_device)(int device) = omp_get_uid_from_device;
 
 public:
-  OMPUIDTrait(StringRef UID) : OMPTrait(UID_T), UID(UID.copy()) {}
+  kmp_uid_trait(kmp_str_ref uid) : kmp_trait(UID_T), uid(uid.copy()) {}
 
-  ~OMPUIDTrait() override {
-    if (UID)
-      KMP_INTERNAL_FREE(UID);
+  ~kmp_uid_trait() override {
+    if (uid)
+      KMP_INTERNAL_FREE(uid);
   }
 
-  bool match(int Device) const override {
-    const char *DeviceUID = getUIDFromDevice(Device);
-    if (!DeviceUID || !UID)
+  bool match(int device) const override {
+    const char *device_uid = get_uid_from_device(device);
+    if (!device_uid || !uid)
       return false;
-    return strcmp(DeviceUID, UID) == 0;
+    return strcmp(device_uid, uid) == 0;
   }
 
   // For testing purposes only: set the function that returns the UID from a
   // device.
-  void setUIDFromDevice(const char *(*UIDFromDevice)(int)) {
-    getUIDFromDevice = UIDFromDevice;
+  void set_uid_from_device(const char *(*uid_from_device)(int)) {
+    get_uid_from_device = uid_from_device;
   }
 
-  bool operator==(const OMPTrait &Other) const override {
-    if (!OMPTrait::operator==(Other))
+  bool operator==(const kmp_trait &other) const override {
+    if (!kmp_trait::operator==(other))
       return false;
-    const char *OtherUID = static_cast<const OMPUIDTrait &>(Other).UID;
-    return UID && OtherUID ? strcmp(UID, OtherUID) == 0 : UID == OtherUID;
+    const char *other_uid = static_cast<const kmp_uid_trait &>(other).uid;
+    return uid && other_uid ? strcmp(uid, other_uid) == 0 : uid == other_uid;
   }
 };
 
 /// Represents a collection of traits that are either ANDed or ORed together.
-class OMPTraitExpr {
+class kmp_trait_expr {
 protected:
-  enum ExprType { SINGLE_T, GROUP_T };
-  ExprType _Type;
+  enum expr_type { SINGLE_T, GROUP_T };
+  expr_type _type;
   // Determines if the expression is negated (true) or not (false).
-  bool Negated = false;
+  bool negated = false;
   // Can be used by unit tests to mock omp_get_num_devices.
-  int (*getNumDevices)() = omp_get_num_devices;
+  int (*get_num_devices)() = omp_get_num_devices;
 
-  OMPTraitExpr(ExprType Type) : _Type(Type) {}
-  OMPTraitExpr(ExprType Type, bool Negated) : _Type(Type), Negated(Negated) {}
+  kmp_trait_expr(expr_type type) : _type(type) {}
+  kmp_trait_expr(expr_type type, bool negated)
+      : _type(type), negated(negated) {}
 
-  virtual bool matchImpl(int Device, int NumDevices) const = 0;
+  virtual bool match_impl(int device, int num_devices) const = 0;
 
 public:
-  virtual ~OMPTraitExpr() = default;
+  virtual ~kmp_trait_expr() = default;
 
-  OMPTraitExpr(const OMPTraitExpr &) = delete;
-  OMPTraitExpr(OMPTraitExpr &&) = delete;
-  OMPTraitExpr &operator=(const OMPTraitExpr &) = delete;
-  OMPTraitExpr &operator=(OMPTraitExpr &&) = delete;
+  kmp_trait_expr(const kmp_trait_expr &) = delete;
+  kmp_trait_expr(kmp_trait_expr &&) = delete;
+  kmp_trait_expr &operator=(const kmp_trait_expr &) = delete;
+  kmp_trait_expr &operator=(kmp_trait_expr &&) = delete;
 
   // Returns a sorted set of devices that match the expression.
-  Vector<int> evaluate() const {
-    Vector<int> Result;
-    for (int D = 0, NumDevices = getNumDevices(); D < NumDevices; ++D) {
-      if (match(D, NumDevices))
-        Result.pushBack(D);
+  kmp_vector<int> evaluate() const {
+    kmp_vector<int> result;
+    for (int d = 0, num_devs = get_num_devices(); d < num_devs; ++d) {
+      if (match(d, num_devs))
+        result.push_back(d);
     }
-    return Result;
+    return result;
   }
 
-  bool isNegated() const { return Negated; }
+  bool is_negated() const { return negated; }
 
   // Check if the device matches the expression.
-  bool match(int Device, int NumDevices = -1) const {
-    if (NumDevices == -1)
-      NumDevices = getNumDevices();
-    if (Device < 0 || Device >= NumDevices)
+  bool match(int device, int num_devices = -1) const {
+    if (num_devices == -1)
+      num_devices = get_num_devices();
+    if (device < 0 || device >= num_devices)
       return false;
-    return matchImpl(Device, NumDevices);
+    return match_impl(device, num_devices);
   }
 
-  void setNegated(bool Negated = true) { this->Negated = Negated; }
+  void set_negated(bool neg = true) { negated = neg; }
 
   // For testing purposes only: set the function that returns the number of
   // devices.
-  void setNumDevices(int (*NumDevices)()) { getNumDevices = NumDevices; }
+  void set_num_devices(int (*num_devices)()) { get_num_devices = num_devices; }
 
   // Use KMP_INTERNAL_MALLOC/KMP_INTERNAL_FREE for memory management.
-  void *operator new(size_t Size) { return KMP_INTERNAL_MALLOC(Size); }
-  void operator delete(void *Ptr) { KMP_INTERNAL_FREE(Ptr); }
+  void *operator new(size_t size) { return KMP_INTERNAL_MALLOC(size); }
+  void operator delete(void *ptr) { KMP_INTERNAL_FREE(ptr); }
 
-  virtual bool operator==(const OMPTraitExpr &Other) const {
-    return _Type == Other._Type && Negated == Other.Negated;
+  virtual bool operator==(const kmp_trait_expr &other) const {
+    return _type == other._type && negated == other.negated;
   }
 };
 
-class OMPTraitExprSingle final : public OMPTraitExpr {
-  OMPTrait *Trait = nullptr;
+class kmp_trait_expr_single final : public kmp_trait_expr {
+  kmp_trait *trait = nullptr;
 
 protected:
-  bool matchImpl(int Device, int NumDevices) const override {
-    assert(Trait);
-    bool Result = Trait->match(Device);
-    return Negated ? !Result : Result;
+  bool match_impl(int device, [[maybe_unused]] int num_devices) const override {
+    assert(trait);
+    bool result = trait->match(device);
+    return negated ? !result : result;
   }
 
 public:
-  OMPTraitExprSingle() : OMPTraitExpr(SINGLE_T) {}
-  OMPTraitExprSingle(bool Negated) : OMPTraitExpr(SINGLE_T, Negated) {}
-  OMPTraitExprSingle(OMPTrait *Trait) : OMPTraitExpr(SINGLE_T), Trait(Trait) {
-    assert(Trait && "OMPTraitExprSingle requires a non-null trait");
+  kmp_trait_expr_single() : kmp_trait_expr(SINGLE_T) {}
+  kmp_trait_expr_single(bool negated) : kmp_trait_expr(SINGLE_T, negated) {}
+  kmp_trait_expr_single(kmp_trait *trait)
+      : kmp_trait_expr(SINGLE_T), trait(trait) {
+    assert(trait && "kmp_trait_expr_single requires a non-null trait");
   }
-  ~OMPTraitExprSingle() override { delete Trait; }
+  ~kmp_trait_expr_single() override { delete trait; }
 
-  void setTrait(OMPTrait *Trait) {
-    assert(Trait);
-    if (this->Trait)
-      delete this->Trait;
-    this->Trait = Trait;
+  void set_trait(kmp_trait *new_trait) {
+    assert(new_trait);
+    if (trait)
+      delete trait;
+    trait = new_trait;
   }
 
-  bool operator==(const OMPTraitExpr &Other) const override {
-    if (!OMPTraitExpr::operator==(Other))
+  bool operator==(const kmp_trait_expr &other) const override {
+    if (!kmp_trait_expr::operator==(other))
       return false;
-    const OMPTraitExprSingle &OtherSingle =
-        static_cast<const OMPTraitExprSingle &>(Other);
-    return Trait && OtherSingle.Trait ? *Trait == *OtherSingle.Trait
-                                      : Trait == OtherSingle.Trait;
+    const kmp_trait_expr_single &other_single =
+        static_cast<const kmp_trait_expr_single &>(other);
+    return trait && other_single.trait ? *trait == *other_single.trait
+                                       : trait == other_single.trait;
   }
 };
 
-class OMPTraitExprGroup final : public OMPTraitExpr {
+class kmp_trait_expr_group final : public kmp_trait_expr {
 public:
-  enum GroupType { AND, OR };
+  enum group_type { AND, OR };
 
 private:
-  Vector<OMPTraitExpr *> Exprs;
+  kmp_vector<kmp_trait_expr *> exprs;
   // Determines if all traits have to match (true) or any of them (false).
-  GroupType Type = OR;
+  group_type type = OR;
 
 protected:
-  bool matchImpl(int Device, int NumDevices) const override {
-    size_t Matched = 0;
-    for (const OMPTraitExpr *Expr : Exprs) {
-      if (Expr->match(Device, NumDevices))
-        Matched++;
+  bool match_impl(int device, int num_devices) const override {
+    size_t matched = 0;
+    for (const kmp_trait_expr *expr : exprs) {
+      if (expr->match(device, num_devices))
+        matched++;
     }
-    bool Result = Type == AND ? Matched == Exprs.size() : Matched > 0;
-    return Negated ? !Result : Result;
+    bool result = type == AND ? matched == exprs.size() : matched > 0;
+    return negated ? !result : result;
   }
 
 public:
-  OMPTraitExprGroup() : OMPTraitExpr(GROUP_T) {}
-  OMPTraitExprGroup(bool Negated) : OMPTraitExpr(GROUP_T, Negated) {}
-  ~OMPTraitExprGroup() override {
-    for (OMPTraitExpr *Expr : Exprs)
-      delete Expr;
+  kmp_trait_expr_group() : kmp_trait_expr(GROUP_T) {}
+  kmp_trait_expr_group(bool negated) : kmp_trait_expr(GROUP_T, negated) {}
+  ~kmp_trait_expr_group() override {
+    for (kmp_trait_expr *expr : exprs)
+      delete expr;
   }
 
-  void addExpr(OMPTrait *Trait) {
-    assert(Trait);
-    addExpr(new OMPTraitExprSingle(Trait));
+  void add_expr(kmp_trait *trait) {
+    assert(trait);
+    add_expr(new kmp_trait_expr_single(trait));
   }
-  void addExpr(OMPTraitExpr *Expr) {
-    assert(Expr);
-    Exprs.pushBack(Expr);
-  }
-
-  GroupType getGroupType() const { return Type; }
-
-  void setGroupType(GroupType Type) { this->Type = Type; }
-
-  void setNumDevices(int (*NumDevices)()) {
-    OMPTraitExpr::setNumDevices(NumDevices);
-    for (OMPTraitExpr *Expr : Exprs)
-      Expr->setNumDevices(NumDevices);
+  void add_expr(kmp_trait_expr *expr) {
+    assert(expr);
+    exprs.push_back(expr);
   }
 
-  bool operator==(const OMPTraitExpr &Other) const override {
-    if (!OMPTraitExpr::operator==(Other))
+  group_type get_group_type() const { return type; }
+
+  void set_group_type(group_type new_type) { type = new_type; }
+
+  void set_num_devices(int (*num_devices)()) {
+    kmp_trait_expr::set_num_devices(num_devices);
+    for (kmp_trait_expr *expr : exprs)
+      expr->set_num_devices(num_devices);
+  }
+
+  bool operator==(const kmp_trait_expr &other) const override {
+    if (!kmp_trait_expr::operator==(other))
       return false;
-    const OMPTraitExprGroup &OtherGroup =
-        static_cast<const OMPTraitExprGroup &>(Other);
-    return Exprs.isSetEqual(OtherGroup.Exprs,
-                            [](OMPTraitExpr *const &A, OMPTraitExpr *const &B) {
-                              return *A == *B;
-                            });
+    const kmp_trait_expr_group &other_group =
+        static_cast<const kmp_trait_expr_group &>(other);
+    return exprs.is_set_equal(
+        other_group.exprs, [](kmp_trait_expr *const &a,
+                              kmp_trait_expr *const &b) { return *a == *b; });
   }
 };
 
-class OMPTraitClause final {
-  OMPTraitExpr *Expr = nullptr;
+class kmp_trait_clause final {
+  kmp_trait_expr *expr = nullptr;
 
 public:
-  OMPTraitClause() = default;
-  ~OMPTraitClause() { delete Expr; }
+  kmp_trait_clause() = default;
+  ~kmp_trait_clause() { delete expr; }
 
-  OMPTraitClause(const OMPTraitClause &) = delete;
-  OMPTraitClause(OMPTraitClause &&) = delete;
-  OMPTraitClause &operator=(const OMPTraitClause &) = delete;
-  OMPTraitClause &operator=(OMPTraitClause &&) = delete;
+  kmp_trait_clause(const kmp_trait_clause &) = delete;
+  kmp_trait_clause(kmp_trait_clause &&) = delete;
+  kmp_trait_clause &operator=(const kmp_trait_clause &) = delete;
+  kmp_trait_clause &operator=(kmp_trait_clause &&) = delete;
 
-  OMPTraitExpr *getExpr() { return Expr; }
+  kmp_trait_expr *get_expr() { return expr; }
 
-  bool match(int Device, int NumDevices = -1) const {
-    assert(Expr);
-    return Expr->match(Device, NumDevices);
+  bool match(int device, int num_devices = -1) const {
+    assert(expr);
+    return expr->match(device, num_devices);
   }
 
-  void setExpr(OMPTrait *Trait) {
-    assert(Trait);
-    if (this->Expr)
-      delete this->Expr;
-    this->Expr = new OMPTraitExprSingle(Trait);
+  void set_expr(kmp_trait *trait) {
+    assert(trait);
+    if (expr)
+      delete expr;
+    expr = new kmp_trait_expr_single(trait);
   }
-  void setExpr(OMPTraitExpr *Expr) {
-    assert(Expr);
-    if (this->Expr)
-      delete this->Expr;
-    this->Expr = Expr;
+  void set_expr(kmp_trait_expr *new_expr) {
+    assert(new_expr);
+    if (expr)
+      delete expr;
+    expr = new_expr;
   }
 
   // Use KMP_INTERNAL_MALLOC/KMP_INTERNAL_FREE for memory management.
-  void *operator new(size_t Size) { return KMP_INTERNAL_MALLOC(Size); }
-  void operator delete(void *Ptr) { KMP_INTERNAL_FREE(Ptr); }
+  void *operator new(size_t size) { return KMP_INTERNAL_MALLOC(size); }
+  void operator delete(void *ptr) { KMP_INTERNAL_FREE(ptr); }
 
-  bool operator==(const OMPTraitClause &Other) const {
-    return Expr && Other.Expr ? *Expr == *Other.Expr : Expr == Other.Expr;
+  bool operator==(const kmp_trait_clause &other) const {
+    return expr && other.expr ? *expr == *other.expr : expr == other.expr;
   }
 };
 
 } // namespace kmp_trait
 
-class OMPTraitContext final {
-  using OMPTraitClause = kmp_trait::OMPTraitClause;
-  using OMPTraitExpr = kmp_trait::OMPTraitExpr;
+class kmp_trait_context final {
+  using kmp_trait_clause = kmp_trait::kmp_trait_clause;
+  using kmp_trait_expr = kmp_trait::kmp_trait_expr;
 
-  Vector<OMPTraitClause *> Clauses;
+  kmp_vector<kmp_trait_clause *> clauses;
   // Can be used by unit tests to mock omp_get_num_devices.
-  int (*getNumDevices)() = kmp_trait::omp_get_num_devices;
+  int (*get_num_devices)() = kmp_trait::omp_get_num_devices;
 
 public:
-  OMPTraitContext() = default;
-  ~OMPTraitContext() {
-    for (OMPTraitClause *Clause : Clauses)
-      delete Clause;
+  kmp_trait_context() = default;
+  ~kmp_trait_context() {
+    for (kmp_trait_clause *clause : clauses)
+      delete clause;
   }
 
-  OMPTraitContext(const OMPTraitContext &) = delete;
-  OMPTraitContext(OMPTraitContext &&) = delete;
-  OMPTraitContext &operator=(const OMPTraitContext &) = delete;
-  OMPTraitContext &operator=(OMPTraitContext &&) = delete;
+  kmp_trait_context(const kmp_trait_context &) = delete;
+  kmp_trait_context(kmp_trait_context &&) = delete;
+  kmp_trait_context &operator=(const kmp_trait_context &) = delete;
+  kmp_trait_context &operator=(kmp_trait_context &&) = delete;
 
-  static OMPTraitContext *parseFromSpec(StringRef Spec);
+  static kmp_trait_context *parse_from_spec(kmp_str_ref spec);
 
-  void addClause(OMPTraitClause *Clause) {
-    assert(Clause);
-    Clauses.pushBack(Clause);
+  void add_clause(kmp_trait_clause *clause) {
+    assert(clause);
+    clauses.push_back(clause);
   }
 
   // Returns the list of devices that match the trait specification represented
   // by the context. The list contains devices numbers forming a set and sorted
   // in ascending order.
-  Vector<int> evaluate() const {
-    Vector<int> Result;
-    for (int D = 0; D < getNumDevices(); ++D) {
-      if (match(D))
-        Result.pushBack(D);
+  kmp_vector<int> evaluate() const {
+    kmp_vector<int> result;
+    for (int d = 0; d < get_num_devices(); ++d) {
+      if (match(d))
+        result.push_back(d);
     }
-    return Result;
+    return result;
   }
 
-  bool match(int Device) const {
-    if (Device < 0 || Device >= getNumDevices())
+  bool match(int device) const {
+    if (device < 0 || device >= get_num_devices())
       return false;
-    for (OMPTraitClause *Clause : Clauses) {
-      if (Clause->match(Device))
+    for (kmp_trait_clause *clause : clauses) {
+      if (clause->match(device))
         return true;
     }
     return false;
@@ -360,23 +363,22 @@ public:
 
   // For testing purposes only: set the function that returns the number of
   // devices.
-  void setNumDevices(int (*NumDevices)()) {
-    getNumDevices = NumDevices;
-    for (OMPTraitClause *Clause : Clauses) {
-      if (OMPTraitExpr *Expr = Clause->getExpr())
-        Expr->setNumDevices(NumDevices);
+  void set_num_devices(int (*num_devices)()) {
+    get_num_devices = num_devices;
+    for (kmp_trait_clause *clause : clauses) {
+      if (kmp_trait_expr *expr = clause->get_expr())
+        expr->set_num_devices(num_devices);
     }
   }
 
   // Use KMP_INTERNAL_MALLOC/KMP_INTERNAL_FREE for memory management.
-  void *operator new(size_t Size) { return KMP_INTERNAL_MALLOC(Size); }
-  void operator delete(void *Ptr) { KMP_INTERNAL_FREE(Ptr); }
+  void *operator new(size_t size) { return KMP_INTERNAL_MALLOC(size); }
+  void operator delete(void *ptr) { KMP_INTERNAL_FREE(ptr); }
 
-  bool operator==(const OMPTraitContext &Other) const {
-    auto ClauseComp = [](OMPTraitClause *const &A, OMPTraitClause *const &B) {
-      return *A == *B;
-    };
-    return Clauses.isSetEqual(Other.Clauses, ClauseComp);
+  bool operator==(const kmp_trait_context &other) const {
+    auto clause_comp = [](kmp_trait_clause *const &a,
+                          kmp_trait_clause *const &b) { return *a == *b; };
+    return clauses.is_set_equal(other.clauses, clause_comp);
   }
 };
 

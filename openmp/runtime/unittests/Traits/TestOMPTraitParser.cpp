@@ -17,38 +17,38 @@ namespace {
 
 class ParserTest : public ::testing::Test {
 protected:
-  OMPTraitContext *Context = nullptr;
+  kmp_trait_context *context = nullptr;
 
-  void parse(const char *Spec) {
-    Context = OMPTraitContext::parseFromSpec(StringRef(Spec));
+  void parse(const char *spec) {
+    context = kmp_trait_context::parse_from_spec(kmp_str_ref(spec));
   }
 
   void TearDown() override {
-    if (Context) {
-      delete Context;
-      Context = nullptr;
+    if (context) {
+      delete context;
+      context = nullptr;
     }
   }
 };
 
-template <bool ExpectedResult>
-static void checkResultSingle(const OMPTraitContext *Context,
-                              const Vector<int> &Result,
-                              int ExpectedDeviceNum) {
-  EXPECT_EQ(Context->match(ExpectedDeviceNum), ExpectedResult);
-  EXPECT_EQ(Result.contains(ExpectedDeviceNum), ExpectedResult);
+template <bool expected_result>
+static void check_result_single(const kmp_trait_context *context,
+                                const kmp_vector<int> &result,
+                                int expected_device_num) {
+  EXPECT_EQ(context->match(expected_device_num), expected_result);
+  EXPECT_EQ(result.contains(expected_device_num), expected_result);
 }
 
-template <bool ExpectedResult, int... DeviceNums>
-static void checkResult(const OMPTraitContext *Context,
-                        const Vector<int> &Result) {
-  (checkResultSingle<ExpectedResult>(Context, Result, DeviceNums), ...);
+template <bool expected_result, int... device_nums>
+static void check_result(const kmp_trait_context *context,
+                         const kmp_vector<int> &result) {
+  (check_result_single<expected_result>(context, result, device_nums), ...);
 }
 
-template <bool ExpectedResult, int... DeviceNums>
-static void checkResult(const OMPTraitContext *Context) {
-  Vector<int> Result = Context->evaluate();
-  checkResult<ExpectedResult, DeviceNums...>(Context, Result);
+template <bool expected_result, int... device_nums>
+static void check_result(const kmp_trait_context *context) {
+  kmp_vector<int> result = context->evaluate();
+  check_result<expected_result, device_nums...>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -58,66 +58,66 @@ static void checkResult(const OMPTraitContext *Context) {
 TEST_F(ParserTest, SingleLiteral) {
   parse("5");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Device 5 is out of range (mock has 4 devices: 0-3), so match returns false
-  EXPECT_EQ(Context->evaluate().size(), 0u);
+  EXPECT_EQ(context->evaluate().size(), 0u);
 
-  checkResult<false, 5, 0, 4, 6>(Context);
+  check_result<false, 5, 0, 4, 6>(context);
 }
 
 TEST_F(ParserTest, ZeroLiteral) {
   parse("0");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, MultipleLiterals) {
   parse("1,2,3");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 1, 2, 3>(Context, Result);
-  checkResult<false, 0, 4>(Context, Result);
+  check_result<true, 1, 2, 3>(context, result);
+  check_result<false, 0, 4>(context, result);
 }
 
 TEST_F(ParserTest, LiteralsWithSpaces) {
   parse("1, 2, 3");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 1, 2, 3>(Context, Result);
-  checkResult<false, 0, 4>(Context, Result);
+  check_result<true, 1, 2, 3>(context, result);
+  check_result<false, 0, 4>(context, result);
 }
 
 TEST_F(ParserTest, LiteralsWithLeadingSpaces) {
   parse("  1,  2,  3");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 1, 2, 3>(Context, Result);
-  checkResult<false, 0, 4>(Context, Result);
+  check_result<true, 1, 2, 3>(context, result);
+  check_result<false, 0, 4>(context, result);
 }
 
 TEST_F(ParserTest, LargeLiteral) {
   parse("12345");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Device 12345 is out of range, so match returns false
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 0u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 0u);
 
-  checkResult<false, 12345, 0>(Context, Result);
+  check_result<false, 12345, 0>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -127,25 +127,25 @@ TEST_F(ParserTest, LargeLiteral) {
 TEST_F(ParserTest, Wildcard) {
   parse("*");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Wildcard matches all 4 mock devices
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 100>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 100>(context, result);
 }
 
 TEST_F(ParserTest, WildcardWithLiterals) {
   parse("1, *, 3");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Wildcard makes all in-range devices match
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 100>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 100>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -155,57 +155,57 @@ TEST_F(ParserTest, WildcardWithLiterals) {
 TEST_F(ParserTest, UIDTrait) {
   parse("uid(device-0)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Uses mock: device-0 is at index 0
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, UIDTraitWithUnderscore) {
   parse("uid(my_device_123)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // This UID doesn't match any mock device
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 0u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 0u);
 
-  checkResult<false, 0, 1>(Context, Result);
+  check_result<false, 0, 1>(context, result);
 }
 
 TEST_F(ParserTest, UIDTraitWithDash) {
   parse("uid(device-2)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Uses mock: device-2 is at index 2
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 2>(Context, Result);
-  checkResult<false, 0, 1, 3>(Context, Result);
+  check_result<true, 2>(context, result);
+  check_result<false, 0, 1, 3>(context, result);
 }
 
 TEST_F(ParserTest, MultipleUIDTraits) {
   parse("uid(device-1), uid(device-3)");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 1, 3>(Context, Result);
-  checkResult<false, 0, 2>(Context, Result);
+  check_result<true, 1, 3>(context, result);
+  check_result<false, 0, 2>(context, result);
 }
 
 TEST_F(ParserTest, MixedLiteralsAndUIDs) {
   parse("0, uid(device-2), 1, uid(device-3)");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -215,13 +215,13 @@ TEST_F(ParserTest, MixedLiteralsAndUIDs) {
 TEST_F(ParserTest, NegatedUID) {
   parse("!uid(device-0)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Negated: everything except device-0 matches
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<false, 0>(Context, Result);
-  checkResult<true, 1, 2, 3>(Context, Result);
+  check_result<false, 0>(context, result);
+  check_result<true, 1, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -231,47 +231,47 @@ TEST_F(ParserTest, NegatedUID) {
 TEST_F(ParserTest, SimpleGroup) {
   parse("(uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<false, 0>(Context, Result);
-  checkResult<true, 1>(Context, Result);
+  check_result<false, 0>(context, result);
+  check_result<true, 1>(context, result);
 }
 
 TEST_F(ParserTest, GroupWithOR) {
   parse("(uid(device-0) || uid(device-2))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 2>(Context, Result);
-  checkResult<false, 1, 3>(Context, Result);
+  check_result<true, 0, 2>(context, result);
+  check_result<false, 1, 3>(context, result);
 }
 
 TEST_F(ParserTest, GroupWithAND) {
   parse("(uid(device-0) && uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Both refer to same device, so AND passes for device 0
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, NegatedGroup) {
   parse("!(uid(device-0) || uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Negated: matches devices NOT in {0, 1}
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<false, 0, 1>(Context, Result);
-  checkResult<true, 2, 3>(Context, Result);
+  check_result<false, 0, 1>(context, result);
+  check_result<true, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -281,22 +281,22 @@ TEST_F(ParserTest, NegatedGroup) {
 TEST_F(ParserTest, ComplexMixed) {
   parse("0, 1, uid(device-2), *");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 100>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 100>(context, result);
 }
 
 TEST_F(ParserTest, MultipleORGroups) {
   parse("(uid(device-0) || uid(device-1)), (uid(device-2) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -307,215 +307,215 @@ TEST_F(ParserTest, ThreeWayOR) {
   // Three UIDs combined with OR
   parse("(uid(device-0) || uid(device-1) || uid(device-2))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 1, 2>(Context, Result);
-  checkResult<false, 3>(Context, Result);
+  check_result<true, 0, 1, 2>(context, result);
+  check_result<false, 3>(context, result);
 }
 
 TEST_F(ParserTest, FourWayOR) {
   // All four mock devices via OR
   parse("(uid(device-0) || uid(device-1) || uid(device-2) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ThreeWayAND) {
   // Three identical UIDs with AND - all must match same device
   parse("(uid(device-1) && uid(device-1) && uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 1>(Context, Result);
-  checkResult<false, 0, 2, 3>(Context, Result);
+  check_result<true, 1>(context, result);
+  check_result<false, 0, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ANDWithDifferentUIDs) {
   // AND with different UIDs - can never match (device can't have two UIDs)
   parse("(uid(device-0) && uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 0u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 0u);
 
-  checkResult<false, 0, 1, 2, 3>(Context, Result);
+  check_result<false, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedThreeWayOR) {
   // Negate a group of three UIDs - matches devices NOT in {0, 1, 2}
   parse("!(uid(device-0) || uid(device-1) || uid(device-2))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<false, 0, 1, 2>(Context, Result);
-  checkResult<true, 3>(Context, Result);
+  check_result<false, 0, 1, 2>(context, result);
+  check_result<true, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedAND) {
   // Negate an AND group - since AND never matches, negation matches all
   parse("!(uid(device-0) && uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedANDWithSameUID) {
   // Negate an AND that matches device-0 - matches everything except 0
   parse("!(uid(device-0) && uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<false, 0>(Context, Result);
-  checkResult<true, 1, 2, 3>(Context, Result);
+  check_result<false, 0>(context, result);
+  check_result<true, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NestedParensWithOR) {
   // Nested parentheses around OR
   parse("((uid(device-0) || uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 1>(Context, Result);
-  checkResult<false, 2, 3>(Context, Result);
+  check_result<true, 0, 1>(context, result);
+  check_result<false, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NestedParensWithAND) {
   // Nested parentheses around AND
   parse("((uid(device-2) && uid(device-2)))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 2>(Context, Result);
-  checkResult<false, 0, 1, 3>(Context, Result);
+  check_result<true, 2>(context, result);
+  check_result<false, 0, 1, 3>(context, result);
 }
 
 TEST_F(ParserTest, DoubleNegation) {
   // Double negation: !!uid(device-0) should match device-0
   parse("!(!uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedNestedOR) {
   // Negate nested OR group
   parse("!((uid(device-0) || uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<false, 0, 1>(Context, Result);
-  checkResult<true, 2, 3>(Context, Result);
+  check_result<false, 0, 1>(context, result);
+  check_result<true, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, MultipleNegatedExprs) {
   // Multiple negated clauses - OR semantics between clauses
   parse("!uid(device-0), !uid(device-1)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause matches 1,2,3; Second clause matches 0,2,3
   // OR between clauses: union = all devices
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, MixedNegatedAndNonNegated) {
   // Mix negated and non-negated clauses
   parse("uid(device-0), !uid(device-0)");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First matches 0, second matches 1,2,3 -> union = all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ComplexORGroupsInSeparateExprs) {
   // Complex OR groups as separate clauses
   parse("(uid(device-0) || uid(device-1)), (uid(device-2) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First matches 0,1; Second matches 2,3 -> union = all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedORGroupWithLiteral) {
   // Negated OR group combined with literal in separate clauses
   parse("!(uid(device-0) || uid(device-1)), 0");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First matches 2,3; Second matches 0 -> union = 0,2,3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 2, 3>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0, 2, 3>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, DeeplyNestedWithOperators) {
   // Deeply nested with operators
   parse("(((uid(device-0) || uid(device-1))))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 1>(Context, Result);
-  checkResult<false, 2, 3>(Context, Result);
+  check_result<true, 0, 1>(context, result);
+  check_result<false, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ORWithSpacesAroundOperators) {
   // OR with lots of whitespace
   parse("(  uid(device-0)   ||   uid(device-2)   ||   uid(device-3)  )");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 2, 3>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0, 2, 3>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, ANDWithSpacesAroundOperators) {
   // AND with lots of whitespace
   parse("(  uid(device-1)   &&   uid(device-1)  )");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 1>(Context, Result);
-  checkResult<false, 0, 2, 3>(Context, Result);
+  check_result<true, 1>(context, result);
+  check_result<false, 0, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -526,26 +526,26 @@ TEST_F(ParserTest, ORExprAndANDExpr) {
   // OR group in first clause, AND group in second clause
   parse("(uid(device-0) || uid(device-1)), (uid(device-2) && uid(device-2))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause matches 0,1; Second clause matches 2 -> union = 0,1,2
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 1, 2>(Context, Result);
-  checkResult<false, 3>(Context, Result);
+  check_result<true, 0, 1, 2>(context, result);
+  check_result<false, 3>(context, result);
 }
 
 TEST_F(ParserTest, ANDExprAndORExpr) {
   // AND group first, OR group second
   parse("(uid(device-0) && uid(device-0)), (uid(device-2) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause matches 0; Second clause matches 2,3 -> union = 0,2,3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 2, 3>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0, 2, 3>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, MultipleANDAndORExprs) {
@@ -553,37 +553,37 @@ TEST_F(ParserTest, MultipleANDAndORExprs) {
   parse("(uid(device-0) && uid(device-0)), (uid(device-1) || uid(device-2)), "
         "(uid(device-3) && uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Expr 1 matches 0; Expr 2 matches 1,2; Expr 3 matches 3 -> all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedORWithAND) {
   // Negated OR clause combined with AND clause
   parse("!(uid(device-0) || uid(device-1)), (uid(device-0) && uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause matches 2,3; Second clause matches 0 -> union = 0,2,3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 2, 3>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0, 2, 3>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, NegatedANDWithOR) {
   // Negated AND clause combined with OR clause
   parse("!(uid(device-0) && uid(device-0)), (uid(device-0) || uid(device-1))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause matches 1,2,3; Second clause matches 0,1 -> all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ComplexMixedOperators) {
@@ -591,26 +591,26 @@ TEST_F(ParserTest, ComplexMixedOperators) {
   parse("(uid(device-0) || uid(device-1)), (uid(device-2) && uid(device-2)), "
         "!(uid(device-0) || uid(device-1) || uid(device-2)), 0");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Expr 1: 0,1; Expr 2: 2; Expr 3: NOT(0,1,2) = 3; Expr 4: 0
   // Union = all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ANDNeverMatchesWithOR) {
   // AND that never matches combined with OR that does
   parse("(uid(device-0) && uid(device-1)), (uid(device-2) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause: never matches (different UIDs); Second: 2,3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<false, 0, 1>(Context, Result);
-  checkResult<true, 2, 3>(Context, Result);
+  check_result<false, 0, 1>(context, result);
+  check_result<true, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ORNeverMatchesWithAND) {
@@ -618,13 +618,13 @@ TEST_F(ParserTest, ORNeverMatchesWithAND) {
   parse("(uid(nonexistent-a) || uid(nonexistent-b)), (uid(device-0) && "
         "uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First clause: no match; Second: 0
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ThreeWayORAndThreeWayAND) {
@@ -632,25 +632,25 @@ TEST_F(ParserTest, ThreeWayORAndThreeWayAND) {
   parse("(uid(device-0) || uid(device-1) || uid(device-2)), (uid(device-3) && "
         "uid(device-3) && uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First: 0,1,2; Second: 3 -> all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedMixedExprs) {
   // Both clauses negated with different operators
   parse("!(uid(device-0) || uid(device-1)), !(uid(device-2) && uid(device-2))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First: NOT(0,1) = 2,3; Second: NOT(2) = 0,1,3
   // Union = all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, LiteralsWithMixedOperatorExprs) {
@@ -658,13 +658,13 @@ TEST_F(ParserTest, LiteralsWithMixedOperatorExprs) {
   parse("0, (uid(device-1) || uid(device-2)), 3, (uid(device-0) && "
         "uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Literals: 0,3; OR clause: 1,2; AND clause: 0
   // Union = all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -676,14 +676,14 @@ TEST_F(ParserTest, ORContainingANDGroup) {
   // For (B && C) to match, both B and C must match same device
   parse("(uid(device-0) || (uid(device-1) && uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0 matches via first operand
   // device-1 matches via (device-1 && device-1)
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 1>(Context, Result);
-  checkResult<false, 2, 3>(Context, Result);
+  check_result<true, 0, 1>(context, result);
+  check_result<false, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ANDContainingORGroup) {
@@ -693,14 +693,14 @@ TEST_F(ParserTest, ANDContainingORGroup) {
   // (B || C) must also match device-0 for AND to succeed
   parse("(uid(device-0) && (uid(device-0) || uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0: uid(device-0) matches AND (uid(device-0) || uid(device-1))
   // matches -> true device-1: uid(device-0) doesn't match -> false
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ORWithTwoANDGroups) {
@@ -708,13 +708,13 @@ TEST_F(ParserTest, ORWithTwoANDGroups) {
   parse(
       "((uid(device-0) && uid(device-0)) || (uid(device-2) && uid(device-2)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // First AND matches device-0; Second AND matches device-2
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 2>(Context, Result);
-  checkResult<false, 1, 3>(Context, Result);
+  check_result<true, 0, 2>(context, result);
+  check_result<false, 1, 3>(context, result);
 }
 
 TEST_F(ParserTest, ANDWithTwoORGroups) {
@@ -723,15 +723,15 @@ TEST_F(ParserTest, ANDWithTwoORGroups) {
   parse(
       "((uid(device-0) || uid(device-1)) && (uid(device-0) || uid(device-2)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0: matches (0||1) AND matches (0||2) -> true
   // device-1: matches (0||1) but NOT (0||2) -> false
   // device-2: NOT (0||1) -> false
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ORWithNestedANDContainingOR) {
@@ -739,16 +739,16 @@ TEST_F(ParserTest, ORWithNestedANDContainingOR) {
   parse(
       "(uid(device-3) || (uid(device-0) && (uid(device-0) || uid(device-1))))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0: inner (0||1) matches, uid(device-0) matches -> AND matches; OR
   // satisfied device-1: inner (0||1) matches, but uid(device-0) doesn't -> AND
   // fails; outer uid(device-3) fails device-3: outer uid(device-3) matches
   // directly
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 3>(Context, Result);
-  checkResult<false, 1, 2>(Context, Result);
+  check_result<true, 0, 3>(context, result);
+  check_result<false, 1, 2>(context, result);
 }
 
 TEST_F(ParserTest, ANDWithNestedORContainingAND) {
@@ -756,42 +756,42 @@ TEST_F(ParserTest, ANDWithNestedORContainingAND) {
   parse(
       "(uid(device-0) && (uid(device-0) || (uid(device-1) && uid(device-1))))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0: uid(device-0) matches; inner (uid(device-0) || ...) matches ->
   // AND satisfied device-1: uid(device-0) doesn't match -> AND fails
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedORContainingAND) {
   // !(A || (B && C)) - negated complex expression
   parse("!(uid(device-0) || (uid(device-1) && uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Without negation: matches 0, 1
   // With negation: matches 2, 3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<false, 0, 1>(Context, Result);
-  checkResult<true, 2, 3>(Context, Result);
+  check_result<false, 0, 1>(context, result);
+  check_result<true, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, NegatedANDContainingOR) {
   // !(A && (B || C)) - negated complex expression
   parse("!(uid(device-0) && (uid(device-0) || uid(device-1)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Without negation: matches only 0
   // With negation: matches 1, 2, 3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<false, 0>(Context, Result);
-  checkResult<true, 1, 2, 3>(Context, Result);
+  check_result<false, 0>(context, result);
+  check_result<true, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ComplexNestedWithAllDevices) {
@@ -799,15 +799,15 @@ TEST_F(ParserTest, ComplexNestedWithAllDevices) {
   parse(
       "((uid(device-0) || uid(device-1)) && (uid(device-1) || uid(device-2)))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // device-0: (0||1)=true, (1||2)=false -> AND=false
   // device-1: (0||1)=true, (1||2)=true -> AND=true
   // device-2: (0||1)=false -> AND=false
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 1>(Context, Result);
-  checkResult<false, 0, 2, 3>(Context, Result);
+  check_result<true, 1>(context, result);
+  check_result<false, 0, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, TripleNestedMixedOperators) {
@@ -815,15 +815,15 @@ TEST_F(ParserTest, TripleNestedMixedOperators) {
   parse(
       "(((uid(device-0) || uid(device-1)) && uid(device-0)) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Inner (0||1): matches 0, 1
   // Middle ((0||1) && 0): matches only 0
   // Outer (... || 3): matches 0, 3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 3>(Context, Result);
-  checkResult<false, 1, 2>(Context, Result);
+  check_result<true, 0, 3>(context, result);
+  check_result<false, 1, 2>(context, result);
 }
 
 TEST_F(ParserTest, ANDChainWithNestedOR) {
@@ -833,28 +833,28 @@ TEST_F(ParserTest, ANDChainWithNestedOR) {
   // uid(device-0)) This is three-way AND where middle operand is an OR group
   parse("(uid(device-0) && (uid(device-0) || uid(device-1)) && uid(device-0))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // All three must match: uid(device-0), (0||1), uid(device-0)
   // Only device-0 satisfies all
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1, 2, 3>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1, 2, 3>(context, result);
 }
 
 TEST_F(ParserTest, ORChainWithNestedAND) {
   // (A || (B && C) || D) - three-way OR where middle is AND group
   parse("(uid(device-0) || (uid(device-1) && uid(device-1)) || uid(device-3))");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Any of: device-0, (device-1 && device-1), device-3
   // Matches: 0, 1, 3
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 1, 3>(Context, Result);
-  checkResult<false, 2>(Context, Result);
+  check_result<true, 0, 1, 3>(context, result);
+  check_result<false, 2>(context, result);
 }
 
 TEST_F(ParserTest, NestedMixedWithSpaces) {
@@ -862,12 +862,12 @@ TEST_F(ParserTest, NestedMixedWithSpaces) {
   parse("(  uid(device-0)  ||  ( uid(device-1)  &&  uid(device-1) )  ||  "
         "uid(device-2)  )");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 0, 1, 2>(Context, Result);
-  checkResult<false, 3>(Context, Result);
+  check_result<true, 0, 1, 2>(context, result);
+  check_result<false, 3>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -877,22 +877,22 @@ TEST_F(ParserTest, NestedMixedWithSpaces) {
 TEST_F(ParserTest, EmptyString) {
   parse("");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Empty context matches nothing
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 0u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 0u);
 
-  checkResult<false, 0, 1>(Context, Result);
+  check_result<false, 0, 1>(context, result);
 }
 
 TEST_F(ParserTest, OnlyWhitespace) {
   parse("   ");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 0u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 0u);
 
-  checkResult<false, 0>(Context, Result);
+  check_result<false, 0>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -902,15 +902,15 @@ TEST_F(ParserTest, OnlyWhitespace) {
 TEST_F(ParserTest, SingleDigitLiterals) {
   parse("0,1,2,3,4,5,6,7,8,9");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Only devices 0-3 are in range
   // Devices 4-10 are out of range
   // Mock has only 4 devices (0-3)
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 4, 5, 6, 7, 8, 9, 10>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 4, 5, 6, 7, 8, 9, 10>(context, result);
 }
 
 TEST_F(ParserTest, ConsecutiveCommas) {
@@ -921,34 +921,34 @@ TEST_F(ParserTest, ConsecutiveCommas) {
 TEST_F(ParserTest, SpacesAroundOperators) {
   parse("( uid(device-0)  ||  uid(device-1) )");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 1>(Context, Result);
-  checkResult<false, 2>(Context, Result);
+  check_result<true, 0, 1>(context, result);
+  check_result<false, 2>(context, result);
 }
 
 TEST_F(ParserTest, NestedParens) {
   parse("((uid(device-0)))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, DeeplyNested) {
   parse("(((uid(device-2))))");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<false, 0, 1>(Context, Result);
-  checkResult<true, 2>(Context, Result);
+  check_result<false, 0, 1>(context, result);
+  check_result<true, 2>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -958,35 +958,35 @@ TEST_F(ParserTest, DeeplyNested) {
 TEST_F(ParserTest, NoSpaceAfterComma) {
   parse("1,2,3");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 1, 2, 3>(Context, Result);
-  checkResult<false, 0, 4>(Context, Result);
+  check_result<true, 1, 2, 3>(context, result);
+  check_result<false, 0, 4>(context, result);
 }
 
 TEST_F(ParserTest, SpaceBeforeComma) {
   parse("1 , 2 , 3");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<true, 1, 2, 3>(Context, Result);
-  checkResult<false, 0, 4>(Context, Result);
+  check_result<true, 1, 2, 3>(context, result);
+  check_result<false, 0, 4>(context, result);
 }
 
 TEST_F(ParserTest, MixedWildcardAndLiteral) {
   parse("*, 5");
 
-  ASSERT_NE(Context, nullptr);
+  ASSERT_NE(context, nullptr);
   // Wildcard matches all in-range devices
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 4, 5, 6, 7, 8, 9, 10>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 4, 5, 6, 7, 8, 9, 10>(context, result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -996,56 +996,56 @@ TEST_F(ParserTest, MixedWildcardAndLiteral) {
 TEST_F(ParserTest, SelectFirstDevice) {
   parse("0");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 0>(Context, Result);
-  checkResult<false, 1>(Context, Result);
+  check_result<true, 0>(context, result);
+  check_result<false, 1>(context, result);
 }
 
 TEST_F(ParserTest, SelectAllDevices) {
   parse("*");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 4u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 4u);
 
-  checkResult<true, 0, 1, 2, 3>(Context, Result);
-  checkResult<false, 4, 5, 6, 7, 8, 9, 10>(Context, Result);
+  check_result<true, 0, 1, 2, 3>(context, result);
+  check_result<false, 4, 5, 6, 7, 8, 9, 10>(context, result);
 }
 
 TEST_F(ParserTest, SelectSpecificDevices) {
   parse("0, 2, 4");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 2u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 2u);
 
-  checkResult<true, 0, 2>(Context, Result);
-  checkResult<false, 1, 3>(Context, Result);
+  check_result<true, 0, 2>(context, result);
+  check_result<false, 1, 3>(context, result);
 }
 
 TEST_F(ParserTest, SelectByUID) {
   parse("uid(device-1)");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 1u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 1u);
 
-  checkResult<true, 1>(Context, Result);
-  checkResult<false, 0, 2>(Context, Result);
+  check_result<true, 1>(context, result);
+  check_result<false, 0, 2>(context, result);
 }
 
 TEST_F(ParserTest, ExcludeByUID) {
   parse("!uid(device-0)");
 
-  ASSERT_NE(Context, nullptr);
-  Vector<int> Result = Context->evaluate();
-  EXPECT_EQ(Result.size(), 3u);
+  ASSERT_NE(context, nullptr);
+  kmp_vector<int> result = context->evaluate();
+  EXPECT_EQ(result.size(), 3u);
 
-  checkResult<false, 0>(Context, Result);
-  checkResult<true, 1, 2, 3>(Context, Result);
+  check_result<false, 0>(context, result);
+  check_result<true, 1, 2, 3>(context, result);
 }
 
 } // namespace

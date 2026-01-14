@@ -21,63 +21,63 @@
 
 #include "kmp.h"
 
-/// StringRef is a non-owning string class (similar to llvm::StringRef).
-class StringRef final {
-  const char *Data;
-  size_t Len;
+/// kmp_str_ref is a non-owning string class (similar to llvm::StringRef).
+class kmp_str_ref final {
+  const char *data;
+  size_t len;
 
 public:
-  StringRef(const char *Data) : Data(Data), Len(Data ? strlen(Data) : 0) {
-    assert(Data && "StringRef cannot be constructed from nullptr");
+  kmp_str_ref(const char *data) : data(data), len(data ? strlen(data) : 0) {
+    assert(data && "kmp_str_ref cannot be constructed from nullptr");
   }
-  StringRef(const char *Data, size_t Len) : Data(Data), Len(Len) {
-    assert(Data && "StringRef cannot be constructed from nullptr");
+  kmp_str_ref(const char *data, size_t len) : data(data), len(len) {
+    assert(data && "kmp_str_ref cannot be constructed from nullptr");
   }
 
-  StringRef(const StringRef &Other) = default;
-  StringRef &operator=(const StringRef &Other) = default;
+  kmp_str_ref(const kmp_str_ref &other) = default;
+  kmp_str_ref &operator=(const kmp_str_ref &other) = default;
 
   // Check if the string starts with the given prefix and remove it from the
   // string afterwards.
-  bool consumeFront(StringRef Prefix) {
-    if (Len < Prefix.Len)
+  bool consume_front(kmp_str_ref prefix) {
+    if (len < prefix.len)
       return false;
-    if (memcmp(Data, Prefix.Data, Prefix.Len) != 0)
+    if (memcmp(data, prefix.data, prefix.len) != 0)
       return false;
-    Data += Prefix.Len;
-    Len -= Prefix.Len;
+    data += prefix.len;
+    len -= prefix.len;
     return true;
   }
 
   // Start consuming an integer from the start of the string and remove it from
   // the string afterwards.
   // The maximum integer value that can currently be parsed is INT_MAX - 1.
-  bool consumeInteger(int &Value, bool AllowZero = true,
-                      bool AllowNegative = false) {
-    StringRef Orig = *this; // save state
-    bool IsNegative = consumeFront("-");
-    if (IsNegative && !AllowNegative) {
-      *this = Orig;
+  bool consume_integer(int &value, bool allow_zero = true,
+                       bool allow_negative = false) {
+    kmp_str_ref orig = *this; // save state
+    bool is_negative = consume_front("-");
+    if (is_negative && !allow_negative) {
+      *this = orig;
       return false;
     }
-    size_t NumDigits = countWhile([](char C) {
-      return static_cast<bool>(isdigit(static_cast<unsigned char>(C)));
+    size_t num_digits = count_while([](char c) {
+      return static_cast<bool>(isdigit(static_cast<unsigned char>(c)));
     });
-    if (!NumDigits) {
-      *this = Orig;
+    if (!num_digits) {
+      *this = orig;
       return false;
     }
-    assert(NumDigits <= INT_MAX);
-    Value = __kmp_basic_str_to_int(Data, static_cast<int>(NumDigits));
-    if (Value == INT_MAX) {
-      *this = Orig;
+    assert(num_digits <= INT_MAX);
+    value = __kmp_basic_str_to_int(data, static_cast<int>(num_digits));
+    if (value == INT_MAX) {
+      *this = orig;
       return false;
     }
-    dropFront(NumDigits);
-    if (IsNegative)
-      Value = -Value;
-    if (!AllowZero && Value == 0) {
-      *this = Orig;
+    drop_front(num_digits);
+    if (is_negative)
+      value = -value;
+    if (!allow_zero && value == 0) {
+      *this = orig;
       return false;
     }
     return true;
@@ -86,157 +86,161 @@ public:
   // Get an own duplicate of the string.
   // Must be freed with KMP_INTERNAL_FREE().
   char *copy() const {
-    char *Copy = static_cast<char *>(KMP_INTERNAL_MALLOC(Len + 1));
-    assert(Copy && "copy() failed to allocate memory");
-    memcpy(Copy, Data, Len);
-    Copy[Len] = '\0';
-    return Copy;
+    char *copy_str = static_cast<char *>(KMP_INTERNAL_MALLOC(len + 1));
+    assert(copy_str && "copy() failed to allocate memory");
+    memcpy(copy_str, data, len);
+    copy_str[len] = '\0';
+    return copy_str;
   }
 
   // Count the number of characters in the string while the predicate returns
   // true.
-  size_t countWhile(bool (*Predicate)(char)) const {
-    size_t I = 0;
-    while (I < Len && Predicate(Data[I]))
-      ++I;
-    return I;
+  size_t count_while(bool (*predicate)(char)) const {
+    size_t i = 0;
+    while (i < len && predicate(data[i]))
+      ++i;
+    return i;
   }
 
   // Drop the first n characters from the string.
-  void dropFront(size_t N) {
-    if (N > Len)
-      N = Len;
-    Data += N;
-    Len -= N;
+  void drop_front(size_t n) {
+    if (n > len)
+      n = len;
+    data += n;
+    len -= n;
   }
 
   // Drop characters from the string while the predicate returns true.
-  void dropWhile(bool (*Predicate)(char)) { dropFront(countWhile(Predicate)); }
+  void drop_while(bool (*predicate)(char)) {
+    drop_front(count_while(predicate));
+  }
 
   // Check if the string is empty.
-  bool empty() const { return Len == 0; }
+  bool empty() const { return len == 0; }
 
   // Get the length of the string.
-  size_t length() const { return Len; }
+  size_t length() const { return len; }
 
   // Drop space from the start of the string.
-  void skipSpace() {
-    dropWhile([](char C) {
-      return static_cast<bool>(isspace(static_cast<unsigned char>(C)));
+  void skip_space() {
+    drop_while([](char c) {
+      return static_cast<bool>(isspace(static_cast<unsigned char>(c)));
     });
   }
 
   // Construct a new string with the longest prefix of the original string that
   // satisfies the predicate. Doesn't modify the original string.
-  StringRef takeWhile(bool (*Predicate)(char)) const {
-    return StringRef(Data, countWhile(Predicate));
+  kmp_str_ref take_while(bool (*predicate)(char)) const {
+    return kmp_str_ref(data, count_while(predicate));
   }
 
   // Iterator support (raw pointers work as iterators for contiguous storage)
-  const char *begin() const { return Data; }
-  const char *end() const { return Data + Len; }
+  const char *begin() const { return data; }
+  const char *end() const { return data + len; }
 };
 
-/// Vector is a vector class for managing small vectors.
-/// InlineThreshold: Number of elements in the inline array. If exceeded, the
+/// kmp_vector is a vector class for managing small vectors.
+/// inline_threshold: Number of elements in the inline array. If exceeded, the
 /// vector will grow dynamically.
-template <typename T, size_t InlineThreshold = 8> class Vector final {
+template <typename T, size_t inline_threshold = 8> class kmp_vector final {
   static_assert(std::is_copy_constructible_v<T>,
                 "T must be copy constructible");
   static_assert(std::is_destructible_v<T>, "T must be destructible");
 
-  T InlineData[InlineThreshold];
-  T *Data = InlineData;
-  size_t Size = 0;
-  size_t Capacity = InlineThreshold;
+  T inline_data[inline_threshold];
+  T *data = inline_data;
+  size_t count = 0;
+  size_t capacity = inline_threshold;
 
-  void copyData(T *Dst, const T *Src, size_t Size) {
+  void copy_data(T *dst, const T *src, size_t num_elements) {
     if constexpr (std::is_trivially_copyable_v<T>) {
-      memcpy(Dst, Src, Size * sizeof(T));
+      memcpy(dst, src, num_elements * sizeof(T));
     } else {
-      for (size_t I = 0; I < Size; I++)
-        new (&Dst[I]) T(Src[I]); // copy-construct to memory
+      for (size_t i = 0; i < num_elements; i++)
+        new (&dst[i]) T(src[i]); // copy-construct to memory
     }
   }
 
   void grow() {
-    size_t NewCapacity = Capacity + (Capacity / 2) + 1;
-    resize(NewCapacity);
+    size_t new_capacity = capacity + (capacity / 2) + 1;
+    resize(new_capacity);
   }
 
-  void init(size_t NewCapacity, const T *Init, size_t NewSize) {
-    assert(NewCapacity >= NewSize);
-    if (NewCapacity > InlineThreshold)
-      resize(NewCapacity);
-    if (Init)
-      copyData(Data, Init, NewSize);
-    Size = NewSize;
+  void init(size_t new_capacity, const T *init_data, size_t new_count) {
+    assert(new_capacity >= new_count);
+    if (new_capacity > inline_threshold)
+      resize(new_capacity);
+    if (init_data)
+      copy_data(data, init_data, new_count);
+    count = new_count;
   }
 
-  void moveFrom(Vector &&Other) {
-    if (Other.Data == Other.InlineData) {
+  void move_from(kmp_vector &&other) {
+    if (other.data == other.inline_data) {
       // Cannot move inline data, must copy.
-      init(Other.Capacity, Other.Data, Other.Size);
+      init(other.capacity, other.data, other.count);
     } else {
       // Steal dynamic data.
-      Data = Other.Data;
-      Size = Other.Size;
-      Capacity = Other.Capacity;
+      data = other.data;
+      count = other.count;
+      capacity = other.capacity;
     }
-    Other.reset(false);
+    other.reset(false);
   }
 
-  void reset(bool FreeData) {
-    if (FreeData && Data != InlineData) {
+  void reset(bool free_data) {
+    if (free_data && data != inline_data) {
       clear();
-      KMP_INTERNAL_FREE(Data);
+      KMP_INTERNAL_FREE(data);
     }
-    Data = InlineData;
-    Size = 0;
-    Capacity = InlineThreshold;
+    data = inline_data;
+    count = 0;
+    capacity = inline_threshold;
   }
 
-  // Resize only changes the capacity, not the size (i.e., the number of
+  // resize only changes the capacity, not the size (i.e., the number of
   // actually used elements)
-  void resize(size_t NewCapacity) {
+  void resize(size_t new_capacity) {
     // Currently only supports growing the capacity. (Consequently, doesn't need
     // to worry about going from a dynamic array back to an inline array.)
-    assert(NewCapacity > Capacity && "resize() only supports growing");
-    Capacity = NewCapacity;
-    T *OldData = Data != InlineData ? Data : nullptr;
-    Data =
-        static_cast<T *>(KMP_INTERNAL_REALLOC(OldData, Capacity * sizeof(T)));
-    assert(Data);
+    assert(new_capacity > capacity && "resize() only supports growing");
+    capacity = new_capacity;
+    T *old_data = data != inline_data ? data : nullptr;
+    data =
+        static_cast<T *>(KMP_INTERNAL_REALLOC(old_data, capacity * sizeof(T)));
+    assert(data);
     // Copy the data to the new array if we didn't use a dynamic array before.
-    if (!OldData)
-      copyData(Data, InlineData, Size);
+    if (!old_data)
+      copy_data(data, inline_data, count);
   }
 
 public:
-  ~Vector() { reset(true); }
+  ~kmp_vector() { reset(true); }
 
-  explicit Vector(size_t Capacity = 0) { init(Capacity, nullptr, 0); }
+  explicit kmp_vector(size_t capacity = 0) { init(capacity, nullptr, 0); }
 
-  Vector(size_t Capacity, const T *Init, size_t Size) {
-    init(Capacity, Init, Size);
+  kmp_vector(size_t capacity, const T *init_data, size_t count) {
+    init(capacity, init_data, count);
   }
 
-  Vector(const Vector &Other) { init(Other.Capacity, Other.Data, Other.Size); }
+  kmp_vector(const kmp_vector &other) {
+    init(other.capacity, other.data, other.count);
+  }
 
-  Vector(Vector &&Other) noexcept { moveFrom(std::move(Other)); }
+  kmp_vector(kmp_vector &&other) noexcept { move_from(std::move(other)); }
 
-  Vector &operator=(const Vector &Other) {
-    if (this != &Other) {
+  kmp_vector &operator=(const kmp_vector &other) {
+    if (this != &other) {
       reset(true);
-      init(Other.Capacity, Other.Data, Other.Size);
+      init(other.capacity, other.data, other.count);
     }
     return *this;
   }
 
-  Vector &operator=(Vector &&Other) noexcept {
-    if (this != &Other) {
+  kmp_vector &operator=(kmp_vector &&other) noexcept {
+    if (this != &other) {
       reset(true);
-      moveFrom(std::move(Other));
+      move_from(std::move(other));
     }
     return *this;
   }
@@ -244,73 +248,73 @@ public:
   // Destroy all elements in the vector. Doesn't free the memory.
   void clear() {
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      for (size_t I = 0; I < Size; I++)
-        Data[I].~T();
+      for (size_t i = 0; i < count; i++)
+        data[i].~T();
     }
-    Size = 0;
+    count = 0;
   }
 
   // Check if the vector contains the given value.
   // If a comparator is provided, it will be used to compare the values.
   // Otherwise, the equality operator will be used.
-  bool contains(const T &Value,
-                bool (*Comp)(const T &, const T &) = nullptr) const {
-    for (size_t I = 0; I < Size; I++) {
-      if (Comp ? Comp(Data[I], Value) : Data[I] == Value)
+  bool contains(const T &value,
+                bool (*comp)(const T &, const T &) = nullptr) const {
+    for (size_t i = 0; i < count; i++) {
+      if (comp ? comp(data[i], value) : data[i] == value)
         return true;
     }
     return false;
   }
 
-  bool empty() const { return !Size; }
+  bool empty() const { return !count; }
 
   // Check if the two vectors are equal with set semantics.
   // Current implementation is naive O(n^2) and not optimized for performance.
-  bool isSetEqual(const Vector &Other,
-                  bool (*Comp)(const T &, const T &) = nullptr) const {
-    if (Size != Other.Size)
+  bool is_set_equal(const kmp_vector &other,
+                    bool (*comp)(const T &, const T &) = nullptr) const {
+    if (count != other.count)
       return false;
-    for (size_t I = 0; I < Size; I++) {
-      if (!Other.contains(Data[I], Comp))
+    for (size_t i = 0; i < other.count; i++) {
+      if (!other.contains(data[i], comp))
         return false;
     }
     return true;
   }
 
   // Add a new element to the end of the vector.
-  void pushBack(const T &Value) {
-    if (Size == Capacity)
+  void push_back(const T &value) {
+    if (count == capacity)
       grow();
     if constexpr (std::is_trivially_copyable_v<T>) {
-      Data[Size++] = Value;
+      data[count++] = value;
     } else {
-      new (&Data[Size++]) T(Value);
+      new (&data[count++]) T(value);
     }
   }
 
   // Reserve space for the given number of elements.
   // (Note: does not shrink the vector.)
-  void reserve(size_t NewCapacity) {
-    if (NewCapacity > Capacity)
-      resize(NewCapacity);
+  void reserve(size_t new_capacity) {
+    if (new_capacity > capacity)
+      resize(new_capacity);
   }
 
-  size_t size() const { return Size; }
+  size_t size() const { return count; }
 
-  T &operator[](size_t Index) {
-    assert(Index < Size && "Index out of bounds");
-    return Data[Index];
+  T &operator[](size_t index) {
+    assert(index < count && "Index out of bounds");
+    return data[index];
   }
-  const T &operator[](size_t Index) const {
-    assert(Index < Size && "Index out of bounds");
-    return Data[Index];
+  const T &operator[](size_t index) const {
+    assert(index < count && "Index out of bounds");
+    return data[index];
   }
 
   // Iterator support (raw pointers work as iterators for contiguous storage)
-  T *begin() { return Data; }
-  T *end() { return Data + Size; }
-  const T *begin() const { return Data; }
-  const T *end() const { return Data + Size; }
+  T *begin() { return data; }
+  T *end() { return data + count; }
+  const T *begin() const { return data; }
+  const T *end() const { return data + count; }
 };
 
 #endif // __KMP_ADT_H__

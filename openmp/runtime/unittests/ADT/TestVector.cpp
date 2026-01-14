@@ -1,4 +1,4 @@
-//===- TestVector.cpp - Tests for Vector class ---------------------------===//
+//===- TestVector.cpp - Tests for kmp_vector class -----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -15,168 +15,168 @@ namespace {
 // Construction
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, DefaultConstruction) {
-  Vector<int> V;
-  EXPECT_EQ(V.size(), 0u);
-  EXPECT_TRUE(V.empty());
+TEST(kmp_vector_test, DefaultConstruction) {
+  kmp_vector<int> v;
+  EXPECT_EQ(v.size(), 0u);
+  EXPECT_TRUE(v.empty());
 }
 
-TEST(VectorTest, ConstructWithCapacity) {
-  Vector<int> V(10);
-  EXPECT_EQ(V.size(), 0u);
-  EXPECT_TRUE(V.empty());
+TEST(kmp_vector_test, ConstructWithCapacity) {
+  kmp_vector<int> v(10);
+  EXPECT_EQ(v.size(), 0u);
+  EXPECT_TRUE(v.empty());
 }
 
-TEST(VectorTest, ConstructWithData) {
-  int Data[] = {1, 2, 3, 4, 5};
-  Vector<int> V(5, Data, 5);
+TEST(kmp_vector_test, ConstructWithData) {
+  int data[] = {1, 2, 3, 4, 5};
+  kmp_vector<int> v(5, data, 5);
 
-  EXPECT_EQ(V.size(), 5u);
-  EXPECT_EQ(V[0], 1);
-  EXPECT_EQ(V[1], 2);
-  EXPECT_EQ(V[2], 3);
-  EXPECT_EQ(V[3], 4);
-  EXPECT_EQ(V[4], 5);
+  EXPECT_EQ(v.size(), 5u);
+  EXPECT_EQ(v[0], 1);
+  EXPECT_EQ(v[1], 2);
+  EXPECT_EQ(v[2], 3);
+  EXPECT_EQ(v[3], 4);
+  EXPECT_EQ(v[4], 5);
 }
 
-TEST(VectorTest, ConstructWithCapacityLargerThanSize) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(10, Data, 3);
+TEST(kmp_vector_test, ConstructWithCapacityLargerThanSize) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(10, data, 3);
 
-  EXPECT_EQ(V.size(), 3u);
-  EXPECT_EQ(V[0], 1);
-  EXPECT_EQ(V[1], 2);
-  EXPECT_EQ(V[2], 3);
+  EXPECT_EQ(v.size(), 3u);
+  EXPECT_EQ(v[0], 1);
+  EXPECT_EQ(v[1], 2);
+  EXPECT_EQ(v[2], 3);
 }
 
 //===----------------------------------------------------------------------===//
 // Copy Semantics
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, CopyConstruction) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V1(3, Data, 3);
-  Vector<int> V2(V1);
+TEST(kmp_vector_test, CopyConstruction) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v1(3, data, 3);
+  kmp_vector<int> v2(v1);
 
-  EXPECT_EQ(V2.size(), 3u);
-  EXPECT_EQ(V2[0], 1);
-  EXPECT_EQ(V2[1], 2);
-  EXPECT_EQ(V2[2], 3);
+  EXPECT_EQ(v2.size(), 3u);
+  EXPECT_EQ(v2[0], 1);
+  EXPECT_EQ(v2[1], 2);
+  EXPECT_EQ(v2[2], 3);
 
-  // Modify V1, V2 should be unchanged
-  V1[0] = 100;
-  EXPECT_EQ(V2[0], 1);
+  // Modify v1, v2 should be unchanged
+  v1[0] = 100;
+  EXPECT_EQ(v2[0], 1);
 }
 
-TEST(VectorTest, CopyAssignment) {
-  int Data1[] = {1, 2, 3};
-  int Data2[] = {4, 5};
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(2, Data2, 2);
+TEST(kmp_vector_test, CopyAssignment) {
+  int data1[] = {1, 2, 3};
+  int data2[] = {4, 5};
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(2, data2, 2);
 
-  V2 = V1;
+  v2 = v1;
 
-  EXPECT_EQ(V2.size(), 3u);
-  EXPECT_EQ(V2[0], 1);
-  EXPECT_EQ(V2[1], 2);
-  EXPECT_EQ(V2[2], 3);
+  EXPECT_EQ(v2.size(), 3u);
+  EXPECT_EQ(v2[0], 1);
+  EXPECT_EQ(v2[1], 2);
+  EXPECT_EQ(v2[2], 3);
 }
 
-TEST(VectorTest, SelfCopyAssignment) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, SelfCopyAssignment) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  Vector<int> &VRef = V;
-  V = VRef; // Avoid self-assignment warning
+  kmp_vector<int> &v_ref = v;
+  v = v_ref; // Avoid self-assignment warning
 
-  EXPECT_EQ(V.size(), 3u);
-  EXPECT_EQ(V[0], 1);
+  EXPECT_EQ(v.size(), 3u);
+  EXPECT_EQ(v[0], 1);
 }
 
 //===----------------------------------------------------------------------===//
 // Move Semantics
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, MoveConstruction) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V1(3, Data, 3);
-  Vector<int> V2(std::move(V1));
+TEST(kmp_vector_test, MoveConstruction) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v1(3, data, 3);
+  kmp_vector<int> v2(std::move(v1));
 
-  EXPECT_EQ(V2.size(), 3u);
-  EXPECT_EQ(V2[0], 1);
-  EXPECT_EQ(V2[1], 2);
-  EXPECT_EQ(V2[2], 3);
+  EXPECT_EQ(v2.size(), 3u);
+  EXPECT_EQ(v2[0], 1);
+  EXPECT_EQ(v2[1], 2);
+  EXPECT_EQ(v2[2], 3);
 
-  // V1 should be empty after move
-  EXPECT_EQ(V1.size(), 0u);
+  // v1 should be empty after move
+  EXPECT_EQ(v1.size(), 0u);
 }
 
-TEST(VectorTest, MoveAssignment) {
-  int Data1[] = {1, 2, 3};
-  int Data2[] = {4, 5};
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(2, Data2, 2);
+TEST(kmp_vector_test, MoveAssignment) {
+  int data1[] = {1, 2, 3};
+  int data2[] = {4, 5};
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(2, data2, 2);
 
-  V2 = std::move(V1);
+  v2 = std::move(v1);
 
-  EXPECT_EQ(V2.size(), 3u);
-  EXPECT_EQ(V2[0], 1);
-  EXPECT_EQ(V1.size(), 0u);
+  EXPECT_EQ(v2.size(), 3u);
+  EXPECT_EQ(v2[0], 1);
+  EXPECT_EQ(v1.size(), 0u);
 }
 
-TEST(VectorTest, SelfMoveAssignment) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, SelfMoveAssignment) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  Vector<int> &VRef = V;
-  V = std::move(VRef); // Avoid self-move warning
+  kmp_vector<int> &v_ref = v;
+  v = std::move(v_ref); // Avoid self-move warning
 
   // Self-move should leave object in valid state
-  EXPECT_EQ(V.size(), 3u);
-  EXPECT_EQ(V[0], 1);
+  EXPECT_EQ(v.size(), 3u);
+  EXPECT_EQ(v[0], 1);
 }
 
 //===----------------------------------------------------------------------===//
-// pushBack
+// push_back
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, PushBackToEmpty) {
-  Vector<int> V;
+TEST(kmp_vector_test, PushBackToEmpty) {
+  kmp_vector<int> v;
 
-  V.pushBack(42);
+  v.push_back(42);
 
-  EXPECT_EQ(V.size(), 1u);
-  EXPECT_EQ(V[0], 42);
+  EXPECT_EQ(v.size(), 1u);
+  EXPECT_EQ(v[0], 42);
 }
 
-TEST(VectorTest, PushBackMultiple) {
-  Vector<int> V;
+TEST(kmp_vector_test, PushBackMultiple) {
+  kmp_vector<int> v;
 
-  V.pushBack(1);
-  V.pushBack(2);
-  V.pushBack(3);
-  V.pushBack(4);
-  V.pushBack(5);
+  v.push_back(1);
+  v.push_back(2);
+  v.push_back(3);
+  v.push_back(4);
+  v.push_back(5);
 
-  EXPECT_EQ(V.size(), 5u);
-  EXPECT_EQ(V[0], 1);
-  EXPECT_EQ(V[1], 2);
-  EXPECT_EQ(V[2], 3);
-  EXPECT_EQ(V[3], 4);
-  EXPECT_EQ(V[4], 5);
+  EXPECT_EQ(v.size(), 5u);
+  EXPECT_EQ(v[0], 1);
+  EXPECT_EQ(v[1], 2);
+  EXPECT_EQ(v[2], 3);
+  EXPECT_EQ(v[3], 4);
+  EXPECT_EQ(v[4], 5);
 }
 
-TEST(VectorTest, PushBackGrowth) {
-  Vector<int> V;
+TEST(kmp_vector_test, PushBackGrowth) {
+  kmp_vector<int> v;
 
   // Push many elements to trigger multiple resizes
-  for (int I = 0; I < 100; ++I) {
-    V.pushBack(I);
+  for (int i = 0; i < 100; ++i) {
+    v.push_back(i);
   }
 
-  EXPECT_EQ(V.size(), 100u);
-  for (int I = 0; I < 100; ++I) {
-    EXPECT_EQ(V[I], I);
+  EXPECT_EQ(v.size(), 100u);
+  for (int i = 0; i < 100; ++i) {
+    EXPECT_EQ(v[i], i);
   }
 }
 
@@ -184,369 +184,369 @@ TEST(VectorTest, PushBackGrowth) {
 // clear
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, Clear) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, Clear) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  EXPECT_EQ(V.size(), 3u);
+  EXPECT_EQ(v.size(), 3u);
 
-  V.clear();
+  v.clear();
 
-  EXPECT_EQ(V.size(), 0u);
-  EXPECT_TRUE(V.empty());
+  EXPECT_EQ(v.size(), 0u);
+  EXPECT_TRUE(v.empty());
 }
 
-TEST(VectorTest, ClearEmpty) {
-  Vector<int> V;
+TEST(kmp_vector_test, ClearEmpty) {
+  kmp_vector<int> v;
 
-  V.clear();
+  v.clear();
 
-  EXPECT_EQ(V.size(), 0u);
-  EXPECT_TRUE(V.empty());
+  EXPECT_EQ(v.size(), 0u);
+  EXPECT_TRUE(v.empty());
 }
 
-TEST(VectorTest, PushBackAfterClear) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, PushBackAfterClear) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  V.clear();
-  V.pushBack(42);
+  v.clear();
+  v.push_back(42);
 
-  EXPECT_EQ(V.size(), 1u);
-  EXPECT_EQ(V[0], 42);
+  EXPECT_EQ(v.size(), 1u);
+  EXPECT_EQ(v[0], 42);
 }
 
 //===----------------------------------------------------------------------===//
 // empty
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, EmptyOnDefault) {
-  Vector<int> V;
-  EXPECT_TRUE(V.empty());
+TEST(kmp_vector_test, EmptyOnDefault) {
+  kmp_vector<int> v;
+  EXPECT_TRUE(v.empty());
 }
 
-TEST(VectorTest, NotEmptyAfterPush) {
-  Vector<int> V;
-  V.pushBack(1);
-  EXPECT_FALSE(V.empty());
+TEST(kmp_vector_test, NotEmptyAfterPush) {
+  kmp_vector<int> v;
+  v.push_back(1);
+  EXPECT_FALSE(v.empty());
 }
 
-TEST(VectorTest, EmptyAfterClear) {
-  Vector<int> V;
-  V.pushBack(1);
-  V.clear();
-  EXPECT_TRUE(V.empty());
+TEST(kmp_vector_test, EmptyAfterClear) {
+  kmp_vector<int> v;
+  v.push_back(1);
+  v.clear();
+  EXPECT_TRUE(v.empty());
 }
 
 //===----------------------------------------------------------------------===//
 // contains
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, ContainsFound) {
-  int Data[] = {1, 2, 3, 4, 5};
-  Vector<int> V(5, Data, 5);
+TEST(kmp_vector_test, ContainsFound) {
+  int data[] = {1, 2, 3, 4, 5};
+  kmp_vector<int> v(5, data, 5);
 
-  EXPECT_TRUE(V.contains(1));
-  EXPECT_TRUE(V.contains(3));
-  EXPECT_TRUE(V.contains(5));
+  EXPECT_TRUE(v.contains(1));
+  EXPECT_TRUE(v.contains(3));
+  EXPECT_TRUE(v.contains(5));
 }
 
-TEST(VectorTest, ContainsNotFound) {
-  int Data[] = {1, 2, 3, 4, 5};
-  Vector<int> V(5, Data, 5);
+TEST(kmp_vector_test, ContainsNotFound) {
+  int data[] = {1, 2, 3, 4, 5};
+  kmp_vector<int> v(5, data, 5);
 
-  EXPECT_FALSE(V.contains(0));
-  EXPECT_FALSE(V.contains(6));
-  EXPECT_FALSE(V.contains(-1));
+  EXPECT_FALSE(v.contains(0));
+  EXPECT_FALSE(v.contains(6));
+  EXPECT_FALSE(v.contains(-1));
 }
 
-TEST(VectorTest, ContainsEmpty) {
-  Vector<int> V;
+TEST(kmp_vector_test, ContainsEmpty) {
+  kmp_vector<int> v;
 
-  EXPECT_FALSE(V.contains(0));
-  EXPECT_FALSE(V.contains(1));
+  EXPECT_FALSE(v.contains(0));
+  EXPECT_FALSE(v.contains(1));
 }
 
 //===----------------------------------------------------------------------===//
-// isSetEqual
+// is_set_equal
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, IsSetEqualSameOrder) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V1(3, Data, 3);
-  Vector<int> V2(3, Data, 3);
+TEST(kmp_vector_test, IsSetEqualSameOrder) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v1(3, data, 3);
+  kmp_vector<int> v2(3, data, 3);
 
-  EXPECT_TRUE(V1.isSetEqual(V2));
-  EXPECT_TRUE(V2.isSetEqual(V1));
+  EXPECT_TRUE(v1.is_set_equal(v2));
+  EXPECT_TRUE(v2.is_set_equal(v1));
 }
 
-TEST(VectorTest, IsSetEqualDifferentOrder) {
-  int Data1[] = {1, 2, 3};
-  int Data2[] = {3, 1, 2};
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(3, Data2, 3);
+TEST(kmp_vector_test, IsSetEqualDifferentOrder) {
+  int data1[] = {1, 2, 3};
+  int data2[] = {3, 1, 2};
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(3, data2, 3);
 
-  EXPECT_TRUE(V1.isSetEqual(V2));
-  EXPECT_TRUE(V2.isSetEqual(V1));
+  EXPECT_TRUE(v1.is_set_equal(v2));
+  EXPECT_TRUE(v2.is_set_equal(v1));
 }
 
-TEST(VectorTest, IsSetEqualDifferentSize) {
-  int Data1[] = {1, 2, 3};
-  int Data2[] = {1, 2};
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(2, Data2, 2);
+TEST(kmp_vector_test, IsSetEqualDifferentSize) {
+  int data1[] = {1, 2, 3};
+  int data2[] = {1, 2};
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(2, data2, 2);
 
-  EXPECT_FALSE(V1.isSetEqual(V2));
-  EXPECT_FALSE(V2.isSetEqual(V1));
+  EXPECT_FALSE(v1.is_set_equal(v2));
+  EXPECT_FALSE(v2.is_set_equal(v1));
 }
 
-TEST(VectorTest, IsSetEqualDifferentElements) {
-  int Data1[] = {1, 2, 3};
-  int Data2[] = {1, 2, 4};
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(3, Data2, 3);
+TEST(kmp_vector_test, IsSetEqualDifferentElements) {
+  int data1[] = {1, 2, 3};
+  int data2[] = {1, 2, 4};
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(3, data2, 3);
 
-  EXPECT_FALSE(V1.isSetEqual(V2));
+  EXPECT_FALSE(v1.is_set_equal(v2));
 }
 
-TEST(VectorTest, IsSetEqualEmpty) {
-  Vector<int> V1;
-  Vector<int> V2;
+TEST(kmp_vector_test, IsSetEqualEmpty) {
+  kmp_vector<int> v1;
+  kmp_vector<int> v2;
 
-  EXPECT_TRUE(V1.isSetEqual(V2));
+  EXPECT_TRUE(v1.is_set_equal(v2));
 }
 
 //===----------------------------------------------------------------------===//
 // contains with Comparator
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, ContainsWithComparator) {
-  int Data[] = {10, 20, 30};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, ContainsWithComparator) {
+  int data[] = {10, 20, 30};
+  kmp_vector<int> v(3, data, 3);
 
   // Compare by tens digit
-  auto SameTens = [](const int &A, const int &B) {
-    return (A / 10) == (B / 10);
+  auto same_tens = [](const int &a, const int &b) {
+    return (a / 10) == (b / 10);
   };
 
-  EXPECT_TRUE(V.contains(15, SameTens)); // 15/10 == 1, matches 10/10 == 1
-  EXPECT_TRUE(V.contains(25, SameTens)); // 25/10 == 2, matches 20/10 == 2
-  EXPECT_FALSE(V.contains(45, SameTens)); // 45/10 == 4, no match
+  EXPECT_TRUE(v.contains(15, same_tens)); // 15/10 == 1, matches 10/10 == 1
+  EXPECT_TRUE(v.contains(25, same_tens)); // 25/10 == 2, matches 20/10 == 2
+  EXPECT_FALSE(v.contains(45, same_tens)); // 45/10 == 4, no match
 }
 
-TEST(VectorTest, ContainsPointerWithComparator) {
-  int A = 100, B = 200, C = 300;
-  int *Data[] = {&A, &B, &C};
-  Vector<int *> V(3, Data, 3);
+TEST(kmp_vector_test, ContainsPointerWithComparator) {
+  int a = 100, b = 200, c = 300;
+  int *data[] = {&a, &b, &c};
+  kmp_vector<int *> v(3, data, 3);
 
   // Comparator that compares pointed-to values
-  auto DerefComp = [](int *const &PA, int *const &PB) { return *PA == *PB; };
+  auto deref_comp = [](int *const &pa, int *const &pb) { return *pa == *pb; };
 
-  int X = 200;
-  int *PX = &X;
+  int x = 200;
+  int *px = &x;
 
   // Without comparator: comparing pointers (different addresses)
-  EXPECT_FALSE(V.contains(PX));
+  EXPECT_FALSE(v.contains(px));
 
   // With comparator: comparing values (200 == 200)
-  EXPECT_TRUE(V.contains(PX, DerefComp));
+  EXPECT_TRUE(v.contains(px, deref_comp));
 }
 
 //===----------------------------------------------------------------------===//
-// isSetEqual with Comparator
+// is_set_equal with Comparator
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, IsSetEqualWithComparator) {
-  int Data1[] = {10, 20, 30};
-  int Data2[] = {35, 15, 25}; // Same tens digits as Data1, different order
-  Vector<int> V1(3, Data1, 3);
-  Vector<int> V2(3, Data2, 3);
+TEST(kmp_vector_test, IsSetEqualWithComparator) {
+  int data1[] = {10, 20, 30};
+  int data2[] = {35, 15, 25}; // Same tens digits as data1, different order
+  kmp_vector<int> v1(3, data1, 3);
+  kmp_vector<int> v2(3, data2, 3);
 
-  auto SameTens = [](const int &A, const int &B) {
-    return (A / 10) == (B / 10);
+  auto same_tens = [](const int &a, const int &b) {
+    return (a / 10) == (b / 10);
   };
 
   // Without comparator: not equal
-  EXPECT_FALSE(V1.isSetEqual(V2));
+  EXPECT_FALSE(v1.is_set_equal(v2));
 
   // With comparator: equal (same tens digits)
-  EXPECT_TRUE(V1.isSetEqual(V2, SameTens));
+  EXPECT_TRUE(v1.is_set_equal(v2, same_tens));
 }
 
-TEST(VectorTest, IsSetEqualPointerWithComparator) {
-  int A1 = 100, B1 = 200, C1 = 300;
-  int A2 = 100, B2 = 200, C2 = 300;
-  int *Data1[] = {&A1, &B1, &C1};
-  int *Data2[] = {&C2, &A2, &B2}; // Same values, different order and addresses
-  Vector<int *> V1(3, Data1, 3);
-  Vector<int *> V2(3, Data2, 3);
+TEST(kmp_vector_test, IsSetEqualPointerWithComparator) {
+  int a1 = 100, b1 = 200, c1 = 300;
+  int a2 = 100, b2 = 200, c2 = 300;
+  int *data1[] = {&a1, &b1, &c1};
+  int *data2[] = {&c2, &a2, &b2}; // Same values, different order and addresses
+  kmp_vector<int *> v1(3, data1, 3);
+  kmp_vector<int *> v2(3, data2, 3);
 
-  auto DerefComp = [](int *const &PA, int *const &PB) { return *PA == *PB; };
+  auto deref_comp = [](int *const &pa, int *const &pb) { return *pa == *pb; };
 
   // Without comparator: not equal (different pointers)
-  EXPECT_FALSE(V1.isSetEqual(V2));
+  EXPECT_FALSE(v1.is_set_equal(v2));
 
   // With comparator: equal (same pointed-to values)
-  EXPECT_TRUE(V1.isSetEqual(V2, DerefComp));
+  EXPECT_TRUE(v1.is_set_equal(v2, deref_comp));
 }
 
 //===----------------------------------------------------------------------===//
 // Indexing
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, IndexOperator) {
-  int Data[] = {10, 20, 30};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, IndexOperator) {
+  int data[] = {10, 20, 30};
+  kmp_vector<int> v(3, data, 3);
 
-  EXPECT_EQ(V[0], 10);
-  EXPECT_EQ(V[1], 20);
-  EXPECT_EQ(V[2], 30);
+  EXPECT_EQ(v[0], 10);
+  EXPECT_EQ(v[1], 20);
+  EXPECT_EQ(v[2], 30);
 }
 
-TEST(VectorTest, IndexOperatorModify) {
-  int Data[] = {10, 20, 30};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, IndexOperatorModify) {
+  int data[] = {10, 20, 30};
+  kmp_vector<int> v(3, data, 3);
 
-  V[1] = 200;
+  v[1] = 200;
 
-  EXPECT_EQ(V[1], 200);
+  EXPECT_EQ(v[1], 200);
 }
 
-TEST(VectorTest, ConstIndexOperator) {
-  int Data[] = {10, 20, 30};
-  const Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, ConstIndexOperator) {
+  int data[] = {10, 20, 30};
+  const kmp_vector<int> v(3, data, 3);
 
-  EXPECT_EQ(V[0], 10);
-  EXPECT_EQ(V[1], 20);
-  EXPECT_EQ(V[2], 30);
+  EXPECT_EQ(v[0], 10);
+  EXPECT_EQ(v[1], 20);
+  EXPECT_EQ(v[2], 30);
 }
 
 //===----------------------------------------------------------------------===//
 // Iterators
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, BeginEnd) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, BeginEnd) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  int *Begin = V.begin();
-  int *End = V.end();
+  int *begin = v.begin();
+  int *end = v.end();
 
-  EXPECT_EQ(End - Begin, 3);
-  EXPECT_EQ(*Begin, 1);
-  EXPECT_EQ(*(End - 1), 3);
+  EXPECT_EQ(end - begin, 3);
+  EXPECT_EQ(*begin, 1);
+  EXPECT_EQ(*(end - 1), 3);
 }
 
-TEST(VectorTest, ConstBeginEnd) {
-  int Data[] = {1, 2, 3};
-  const Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, ConstBeginEnd) {
+  int data[] = {1, 2, 3};
+  const kmp_vector<int> v(3, data, 3);
 
-  const int *Begin = V.begin();
-  const int *End = V.end();
+  const int *begin = v.begin();
+  const int *end = v.end();
 
-  EXPECT_EQ(End - Begin, 3);
-  EXPECT_EQ(*Begin, 1);
+  EXPECT_EQ(end - begin, 3);
+  EXPECT_EQ(*begin, 1);
 }
 
-TEST(VectorTest, RangeBasedFor) {
-  int Data[] = {1, 2, 3, 4, 5};
-  Vector<int> V(5, Data, 5);
+TEST(kmp_vector_test, RangeBasedFor) {
+  int data[] = {1, 2, 3, 4, 5};
+  kmp_vector<int> v(5, data, 5);
 
-  int Sum = 0;
-  for (int X : V) {
-    Sum += X;
+  int sum = 0;
+  for (int x : v) {
+    sum += x;
   }
 
-  EXPECT_EQ(Sum, 15);
+  EXPECT_EQ(sum, 15);
 }
 
-TEST(VectorTest, RangeBasedForModify) {
-  int Data[] = {1, 2, 3};
-  Vector<int> V(3, Data, 3);
+TEST(kmp_vector_test, RangeBasedForModify) {
+  int data[] = {1, 2, 3};
+  kmp_vector<int> v(3, data, 3);
 
-  for (int &X : V) {
-    X *= 2;
+  for (int &x : v) {
+    x *= 2;
   }
 
-  EXPECT_EQ(V[0], 2);
-  EXPECT_EQ(V[1], 4);
-  EXPECT_EQ(V[2], 6);
+  EXPECT_EQ(v[0], 2);
+  EXPECT_EQ(v[1], 4);
+  EXPECT_EQ(v[2], 6);
 }
 
-TEST(VectorTest, RangeBasedForEmpty) {
-  Vector<int> V;
+TEST(kmp_vector_test, RangeBasedForEmpty) {
+  kmp_vector<int> v;
 
-  int Count = 0;
-  for (int X : V) {
-    (void)X;
-    Count++;
+  int count = 0;
+  for (int x : v) {
+    (void)x;
+    count++;
   }
 
-  EXPECT_EQ(Count, 0);
+  EXPECT_EQ(count, 0);
 }
 
 //===----------------------------------------------------------------------===//
 // Edge Cases
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, EmptyVector) {
-  Vector<int> V;
+TEST(kmp_vector_test, EmptyVector) {
+  kmp_vector<int> v;
 
-  EXPECT_EQ(V.size(), 0u);
-  EXPECT_EQ(V.begin(), V.end());
-  EXPECT_FALSE(V.contains(0));
+  EXPECT_EQ(v.size(), 0u);
+  EXPECT_EQ(v.begin(), v.end());
+  EXPECT_FALSE(v.contains(0));
 }
 
-TEST(VectorTest, SingleElement) {
-  Vector<int> V;
-  V.pushBack(42);
+TEST(kmp_vector_test, SingleElement) {
+  kmp_vector<int> v;
+  v.push_back(42);
 
-  EXPECT_EQ(V.size(), 1u);
-  EXPECT_EQ(V[0], 42);
-  EXPECT_TRUE(V.contains(42));
-  EXPECT_EQ(V.end() - V.begin(), 1);
+  EXPECT_EQ(v.size(), 1u);
+  EXPECT_EQ(v[0], 42);
+  EXPECT_TRUE(v.contains(42));
+  EXPECT_EQ(v.end() - v.begin(), 1);
 }
 
 //===----------------------------------------------------------------------===//
 // Different Types
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, PointerType) {
-  int A = 1, B = 2, C = 3;
-  int *Data[] = {&A, &B, &C};
-  Vector<int *> V(3, Data, 3);
+TEST(kmp_vector_test, PointerType) {
+  int a = 1, b = 2, c = 3;
+  int *data[] = {&a, &b, &c};
+  kmp_vector<int *> v(3, data, 3);
 
-  EXPECT_EQ(V.size(), 3u);
-  EXPECT_EQ(*V[0], 1);
-  EXPECT_EQ(*V[1], 2);
-  EXPECT_EQ(*V[2], 3);
+  EXPECT_EQ(v.size(), 3u);
+  EXPECT_EQ(*v[0], 1);
+  EXPECT_EQ(*v[1], 2);
+  EXPECT_EQ(*v[2], 3);
 }
 
-TEST(VectorTest, SizeTType) {
-  size_t Data[] = {100, 200, 300};
-  Vector<size_t> V(3, Data, 3);
+TEST(kmp_vector_test, SizeTType) {
+  size_t data[] = {100, 200, 300};
+  kmp_vector<size_t> v(3, data, 3);
 
-  EXPECT_EQ(V[0], 100u);
-  EXPECT_EQ(V[1], 200u);
-  EXPECT_EQ(V[2], 300u);
+  EXPECT_EQ(v[0], 100u);
+  EXPECT_EQ(v[1], 200u);
+  EXPECT_EQ(v[2], 300u);
 }
 
 //===----------------------------------------------------------------------===//
 // Reserve
 //===----------------------------------------------------------------------===//
 
-TEST(VectorTest, Reserve) {
-  Vector<int> V;
-  V.reserve(100);
+TEST(kmp_vector_test, Reserve) {
+  kmp_vector<int> v;
+  v.reserve(100);
 
-  EXPECT_EQ(V.size(), 0u);
+  EXPECT_EQ(v.size(), 0u);
 
   // Should be able to push without reallocation
-  for (int I = 0; I < 100; ++I) {
-    V.pushBack(I);
+  for (int i = 0; i < 100; ++i) {
+    v.push_back(i);
   }
 
-  EXPECT_EQ(V.size(), 100u);
+  EXPECT_EQ(v.size(), 100u);
 }
 
 } // namespace
