@@ -316,6 +316,26 @@ TEST(kmp_vector_test, IsSetEqualEmpty) {
   EXPECT_TRUE(v1.is_set_equal(v2));
 }
 
+TEST(kmp_vector_test, IsSetEqualWithDuplicates) {
+  int data1[] = {1, 1};
+  int data2[] = {1, 2};
+  kmp_vector<int> v1(2, data1, 2);
+  kmp_vector<int> v2(2, data2, 2);
+
+  EXPECT_FALSE(v1.is_set_equal(v2));
+  EXPECT_FALSE(v2.is_set_equal(v1));
+}
+
+TEST(kmp_vector_test, IsSetEqualWithDuplicatesSame) {
+  int data1[] = {1, 1};
+  int data2[] = {1};
+  kmp_vector<int> v1(2, data1, 2);
+  kmp_vector<int> v2(1, data2, 1);
+
+  EXPECT_TRUE(v1.is_set_equal(v2));
+  EXPECT_TRUE(v2.is_set_equal(v1));
+}
+
 //===----------------------------------------------------------------------===//
 // contains with Comparator
 //===----------------------------------------------------------------------===//
@@ -541,12 +561,20 @@ TEST(kmp_vector_test, Reserve) {
 
   EXPECT_EQ(v.size(), 0u);
 
+  // Push one element to get a valid data pointer
+  v.push_back(0);
+  const int *data_ptr = v.begin();
+
   // Should be able to push without reallocation
-  for (int i = 0; i < 100; ++i) {
+  for (int i = 1; i < 100; ++i) {
     v.push_back(i);
   }
 
   EXPECT_EQ(v.size(), 100u);
+  EXPECT_EQ(v.begin(), data_ptr) << "Reallocation occurred despite reserve()";
+  for (int i = 0; i < 100; ++i) {
+    EXPECT_EQ(v[i], i);
+  }
 }
 
 } // namespace

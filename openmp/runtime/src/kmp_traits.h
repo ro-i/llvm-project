@@ -223,6 +223,7 @@ protected:
       if (expr->match(device, num_devices))
         matched++;
     }
+    // Note: AND evaluates to true for an empty group.
     bool result = type == AND ? matched == exprs.size() : matched > 0;
     return negated ? !result : result;
   }

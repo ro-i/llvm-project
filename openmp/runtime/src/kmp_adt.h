@@ -270,12 +270,15 @@ public:
 
   // Check if the two vectors are equal with set semantics.
   // Current implementation is naive O(n^2) and not optimized for performance.
+  // Handles duplicates correctly.
   bool is_set_equal(const kmp_vector &other,
                     bool (*comp)(const T &, const T &) = nullptr) const {
-    if (count != other.count)
-      return false;
-    for (size_t i = 0; i < other.count; i++) {
-      if (!other.contains(data[i], comp))
+    for (const T &val : *this) {
+      if (!other.contains(val, comp))
+        return false;
+    }
+    for (const T &val : other) {
+      if (!contains(val, comp))
         return false;
     }
     return true;
