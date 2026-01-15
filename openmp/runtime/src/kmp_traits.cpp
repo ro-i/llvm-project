@@ -103,34 +103,35 @@ namespace parser {
 
 using namespace kmp_traits;
 
-static kmp_str_ref consume_uid_value(kmp_str_ref &scan) {
+static kmp_str_ref consume_uid_value(kmp_str_ref &scan, const char *dbg_name) {
   scan.skip_space();
   kmp_str_ref uid = scan.take_while([](char c) {
     return isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_';
   });
   scan.drop_front(uid.length());
   if (uid.empty() || !scan.consume_front(")"))
-    KMP_FATAL(TraitParserInvalidUID, uid.copy());
+    KMP_FATAL(TraitParserInvalidUID, dbg_name, uid.copy());
   return uid;
 }
 
-static bool consume_trait(kmp_trait_expr_single &expr, kmp_str_ref &scan) {
+static bool consume_trait(kmp_trait_expr_single &expr, kmp_str_ref &scan,
+                          const char *dbg_name) {
   scan.skip_space();
   if (!scan.consume_front("uid("))
     return false;
-  kmp_str_ref uid = consume_uid_value(scan);
+  kmp_str_ref uid = consume_uid_value(scan, dbg_name);
   expr.set_trait(new kmp_uid_trait(uid));
   return true;
 }
 
 static bool consume_trait_expr_single(kmp_trait_expr_single &expr,
-                                      kmp_str_ref &scan) {
+                                      kmp_str_ref &scan, const char *dbg_name) {
   kmp_str_ref orig_scan = scan;
 
   scan.skip_space();
   if (scan.consume_front("!"))
     expr.set_negated();
-  if (consume_trait(expr, scan))
+  if (consume_trait(expr, scan, dbg_name))
     return true;
   scan = orig_scan;
   return false;
@@ -138,13 +139,14 @@ static bool consume_trait_expr_single(kmp_trait_expr_single &expr,
 
 // forward declaration
 static bool consume_trait_expr_group(kmp_trait_expr_group &group,
-                                     kmp_str_ref &scan, int max_recursion);
+                                     kmp_str_ref &scan, int max_recursion,
+                                     const char *dbg_name);
 
 static bool consume_trait_expr_group_paren(kmp_trait_expr_group &group,
-                                           kmp_str_ref &scan,
-                                           int max_recursion) {
+                                           kmp_str_ref &scan, int max_recursion,
+                                           const char *dbg_name) {
   if (max_recursion-- <= 0)
-    KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
+    KMP_FATAL(TraitParserMaxRecursion, dbg_name, MAX_RECURSION_DEPTH);
   kmp_str_ref orig_scan = scan;
 
   scan.skip_space();
@@ -153,7 +155,7 @@ static bool consume_trait_expr_group_paren(kmp_trait_expr_group &group,
 
   scan.skip_space();
   if (!scan.consume_front("(") ||
-      !consume_trait_expr_group(group, scan, max_recursion)) {
+      !consume_trait_expr_group(group, scan, max_recursion, dbg_name)) {
     scan = orig_scan;
     return false;
   }
@@ -167,13 +169,13 @@ static bool consume_trait_expr_group_paren(kmp_trait_expr_group &group,
 }
 
 static bool consume_trait_expr(kmp_trait_expr *&expr, kmp_str_ref &scan,
-                               int max_recursion) {
+                               int max_recursion, const char *dbg_name) {
   if (max_recursion-- <= 0)
-    KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
+    KMP_FATAL(TraitParserMaxRecursion, dbg_name, MAX_RECURSION_DEPTH);
 
   // Parse a single trait expression
   kmp_trait_expr_single *single_expr = new kmp_trait_expr_single();
-  if (consume_trait_expr_single(*single_expr, scan)) {
+  if (consume_trait_expr_single(*single_expr, scan, dbg_name)) {
     expr = single_expr;
     return true;
   }
@@ -181,7 +183,8 @@ static bool consume_trait_expr(kmp_trait_expr *&expr, kmp_str_ref &scan,
 
   // Parse a parenthesized group trait expression
   kmp_trait_expr_group *group_expr = new kmp_trait_expr_group();
-  if (consume_trait_expr_group_paren(*group_expr, scan, max_recursion)) {
+  if (consume_trait_expr_group_paren(*group_expr, scan, max_recursion,
+                                     dbg_name)) {
     expr = group_expr;
     return true;
   }
@@ -191,12 +194,13 @@ static bool consume_trait_expr(kmp_trait_expr *&expr, kmp_str_ref &scan,
 }
 
 static bool consume_trait_expr_group(kmp_trait_expr_group &group,
-                                     kmp_str_ref &scan, int max_recursion) {
+                                     kmp_str_ref &scan, int max_recursion,
+                                     const char *dbg_name) {
   if (max_recursion-- <= 0)
-    KMP_FATAL(TraitParserMaxRecursion, MAX_RECURSION_DEPTH);
+    KMP_FATAL(TraitParserMaxRecursion, dbg_name, MAX_RECURSION_DEPTH);
 
   kmp_trait_expr *expr = nullptr;
-  if (!consume_trait_expr(expr, scan, max_recursion))
+  if (!consume_trait_expr(expr, scan, max_recursion, dbg_name))
     return false;
 
   group.add_expr(expr);
@@ -215,7 +219,7 @@ static bool consume_trait_expr_group(kmp_trait_expr_group &group,
 
   // Now that we got an operator, we need at least one more trait expr.
   do {
-    if (!consume_trait_expr(expr, scan, max_recursion))
+    if (!consume_trait_expr(expr, scan, max_recursion, dbg_name))
       return false;
     group.add_expr(expr);
     scan.skip_space();
@@ -224,7 +228,8 @@ static bool consume_trait_expr_group(kmp_trait_expr_group &group,
   return true;
 }
 
-static bool consume_clause(kmp_trait_clause &clause, kmp_str_ref &scan) {
+static bool consume_clause(kmp_trait_clause &clause, kmp_str_ref &scan,
+                           const char *dbg_name) {
   kmp_str_ref orig_scan = scan;
   scan.skip_space();
 
@@ -243,7 +248,7 @@ static bool consume_clause(kmp_trait_clause &clause, kmp_str_ref &scan) {
 
   // Parse a trait expression group
   kmp_trait_expr_group *group = new kmp_trait_expr_group();
-  if (consume_trait_expr_group(*group, scan, MAX_RECURSION_DEPTH)) {
+  if (consume_trait_expr_group(*group, scan, MAX_RECURSION_DEPTH, dbg_name)) {
     clause.set_expr(group);
     return true;
   }
@@ -253,13 +258,14 @@ static bool consume_clause(kmp_trait_clause &clause, kmp_str_ref &scan) {
   return false;
 }
 
-static bool consume_list(kmp_trait_context &context, kmp_str_ref &scan) {
+static bool consume_list(kmp_trait_context &context, kmp_str_ref &scan,
+                         const char *dbg_name) {
   kmp_str_ref orig_scan = scan;
   scan.skip_space();
 
   while (!scan.empty()) {
     kmp_trait_clause *clause = new kmp_trait_clause();
-    if (!consume_clause(*clause, scan)) {
+    if (!consume_clause(*clause, scan, dbg_name)) {
       delete clause;
       scan = orig_scan;
       return false;
@@ -279,9 +285,22 @@ static bool consume_list(kmp_trait_context &context, kmp_str_ref &scan) {
 
 } // namespace parser
 
-kmp_trait_context *kmp_trait_context::parse_from_spec(kmp_str_ref spec) {
+kmp_trait_context *kmp_trait_context::parse_from_spec(kmp_str_ref spec,
+                                                      const char *dbg_name) {
   kmp_trait_context *context = new kmp_trait_context();
-  if (!parser::consume_list(*context, spec))
-    KMP_FATAL(TraitParserFailed, spec.copy());
+  if (!parser::consume_list(*context, spec, dbg_name))
+    KMP_FATAL(TraitParserFailed, dbg_name, spec.copy());
   return context;
+}
+
+int kmp_trait_context::parse_single_device(kmp_str_ref spec,
+                                           int device_num_limit,
+                                           const char *dbg_name) {
+  int device_num;
+  spec.skip_space();
+  if (!spec.consume_integer(device_num))
+    KMP_FATAL(TraitParserFailed, dbg_name, spec.copy());
+  if (device_num > device_num_limit)
+    KMP_FATAL(TraitParserValueTooLarge, dbg_name, device_num, device_num_limit);
+  return device_num;
 }

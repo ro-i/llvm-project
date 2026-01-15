@@ -19,8 +19,8 @@ class ParserTest : public ::testing::Test {
 protected:
   kmp_trait_context *context = nullptr;
 
-  void parse(const char *spec) {
-    context = kmp_trait_context::parse_from_spec(kmp_str_ref(spec));
+  void parse(const char *spec, const char *dbg_name = nullptr) {
+    context = kmp_trait_context::parse_from_spec(kmp_str_ref(spec), dbg_name);
   }
 
   void TearDown() override {
@@ -900,65 +900,139 @@ TEST_F(ParserTest, OnlyWhitespace) {
 //===----------------------------------------------------------------------===//
 
 TEST_F(ParserTest, OnlyComma) {
-  ASSERT_DEATH(parse(","), "OMP: Error #[0-9]+: trait parser: "
-                           "failed to parse trait specification \\(,\\)");
+  ASSERT_DEATH(
+      parse(",", "test_only_comma"),
+      "OMP: Error #[0-9]+: trait parser while parsing test_only_comma: "
+      "failed to parse trait specification \\(,\\)");
+}
+
+TEST_F(ParserTest, OnlyCommaNullDbgName) {
+  ASSERT_DEATH(parse(","),
+               "OMP: Error #[0-9]+: trait parser while parsing \\(null\\): "
+               "failed to parse trait specification \\(,\\)");
 }
 
 TEST_F(ParserTest, MixedAndOrSameLevel) {
   // OpenMP 6.0 explicitly excludes "&&" and "||" from appearing in the same
   // grouping level.
-  ASSERT_DEATH(parse("uid(a) && uid(b) || uid(c)"),
-               "OMP: Error #[0-9]+: trait parser: "
-               "failed to parse trait specification "
-               "\\(\\|\\| uid\\(c\\)\\)");
+  ASSERT_DEATH(
+      parse("uid(a) && uid(b) || uid(c)", "mixed_and_or_same_level"),
+      "OMP: Error #[0-9]+: trait parser while parsing mixed_and_or_same_level: "
+      "failed to parse trait specification "
+      "\\(\\|\\| uid\\(c\\)\\)");
 }
 
 TEST_F(ParserTest, MixedOrAndSameLevel) {
-  ASSERT_DEATH(parse("uid(a) || uid(b) && uid(c)"),
-               "OMP: Error #[0-9]+: trait parser: "
-               "failed to parse trait specification "
-               "\\(&& uid\\(c\\)\\)");
+  ASSERT_DEATH(
+      parse("uid(a) || uid(b) && uid(c)", "mixed_or_and_same_level"),
+      "OMP: Error #[0-9]+: trait parser while parsing mixed_or_and_same_level: "
+      "failed to parse trait specification "
+      "\\(&& uid\\(c\\)\\)");
 }
 
 TEST_F(ParserTest, InvalidUID) {
   // Empty UID is not allowed
-  ASSERT_DEATH(parse("uid()"), "OMP: Error #[0-9]+: trait parser: "
-                               "invalid uid \\(\\)");
+  ASSERT_DEATH(parse("uid()", "invalid_uid"),
+               "OMP: Error #[0-9]+: trait parser while parsing invalid_uid: "
+               "invalid uid \\(\\)");
 }
 
 TEST_F(ParserTest, UnclosedParenthesis) {
-  ASSERT_DEATH(parse("(uid(a)"),
-               "OMP: Error #[0-9]+: trait parser: "
-               "failed to parse trait specification \\(\\(uid\\(a\\)\\)");
+  ASSERT_DEATH(
+      parse("(uid(a)", "unclosed_parenthesis"),
+      "OMP: Error #[0-9]+: trait parser while parsing unclosed_parenthesis: "
+      "failed to parse trait specification \\(\\(uid\\(a\\)\\)");
 }
 
 TEST_F(ParserTest, UnmatchedClosingParenthesis) {
-  ASSERT_DEATH(parse("uid(a))"),
-               "OMP: Error #[0-9]+: trait parser: "
+  ASSERT_DEATH(parse("uid(a))", "unmatched_closing_parenthesis"),
+               "OMP: Error #[0-9]+: trait parser while parsing "
+               "unmatched_closing_parenthesis: "
                "failed to parse trait specification \\(\\)\\)");
 }
 
 TEST_F(ParserTest, EmptyParentheses) {
-  ASSERT_DEATH(parse("()"), "OMP: Error #[0-9]+: trait parser: "
-                            "failed to parse trait specification \\(\\(\\)\\)");
+  ASSERT_DEATH(
+      parse("()", "empty_parentheses"),
+      "OMP: Error #[0-9]+: trait parser while parsing empty_parentheses: "
+      "failed to parse trait specification \\(\\(\\)\\)");
 }
 
 TEST_F(ParserTest, TrailingOperator) {
-  ASSERT_DEATH(parse("uid(a) &&"),
-               "OMP: Error #[0-9]+: trait parser: "
-               "failed to parse trait specification \\(uid\\(a\\) &&\\)");
+  ASSERT_DEATH(
+      parse("uid(a) &&", "trailing_operator"),
+      "OMP: Error #[0-9]+: trait parser while parsing trailing_operator: "
+      "failed to parse trait specification \\(uid\\(a\\) &&\\)");
 }
 
 TEST_F(ParserTest, LeadingOperator) {
-  ASSERT_DEATH(parse("&& uid(a)"),
-               "OMP: Error #[0-9]+: trait parser: "
-               "failed to parse trait specification \\(&& uid\\(a\\)\\)");
+  ASSERT_DEATH(
+      parse("&& uid(a)", "leading_operator"),
+      "OMP: Error #[0-9]+: trait parser while parsing leading_operator: "
+      "failed to parse trait specification \\(&& uid\\(a\\)\\)");
 }
 
 TEST_F(ParserTest, DoubleComma) {
-  ASSERT_DEATH(parse("uid(a),,uid(b)"),
-               "OMP: Error #[0-9]+: trait parser: "
+  ASSERT_DEATH(parse("uid(a),,uid(b)", "double_comma"),
+               "OMP: Error #[0-9]+: trait parser while parsing double_comma: "
                "failed to parse trait specification \\(,,uid\\(b\\)\\)");
+}
+
+//===----------------------------------------------------------------------===//
+// parse_single_device Tests
+//===----------------------------------------------------------------------===//
+
+TEST(ParseSingleDeviceTest, ValidSingleDigit) {
+  int result = kmp_trait_context::parse_single_device(kmp_str_ref("5"), 10);
+  EXPECT_EQ(result, 5);
+}
+
+TEST(ParseSingleDeviceTest, ValidMultiDigit) {
+  int result = kmp_trait_context::parse_single_device(kmp_str_ref("123"), 200);
+  EXPECT_EQ(result, 123);
+}
+
+TEST(ParseSingleDeviceTest, Zero) {
+  int result = kmp_trait_context::parse_single_device(kmp_str_ref("0"), 10);
+  EXPECT_EQ(result, 0);
+}
+
+TEST(ParseSingleDeviceTest, AtLimit) {
+  int result = kmp_trait_context::parse_single_device(kmp_str_ref("10"), 10);
+  EXPECT_EQ(result, 10);
+}
+
+TEST(ParseSingleDeviceTest, AboveLimit) {
+  ASSERT_DEATH(kmp_trait_context::parse_single_device(kmp_str_ref("11"), 10,
+                                                      "above_limit"),
+               "OMP: Error #[0-9]+: trait parser while parsing above_limit: "
+               "value 11 above limit \\(10\\)");
+}
+
+TEST(ParseSingleDeviceTest, NonInteger) {
+  ASSERT_DEATH(kmp_trait_context::parse_single_device(kmp_str_ref("abc"), 10,
+                                                      "non_integer"),
+               "OMP: Error #[0-9]+: trait parser while parsing non_integer: "
+               "failed to parse trait specification \\(abc\\)");
+}
+
+TEST(ParseSingleDeviceTest, EmptyString) {
+  ASSERT_DEATH(
+      kmp_trait_context::parse_single_device(kmp_str_ref(""), 10, "empty"),
+      "OMP: Error #[0-9]+: trait parser while parsing empty: "
+      "failed to parse trait specification \\(\\)");
+}
+
+TEST(ParseSingleDeviceTest, LeadingSpaces) {
+  // consume_integer skips leading spaces
+  int result = kmp_trait_context::parse_single_device(kmp_str_ref("  7"), 10);
+  EXPECT_EQ(result, 7);
+}
+
+TEST(ParseSingleDeviceTest, LargeNumber) {
+  int result =
+      kmp_trait_context::parse_single_device(kmp_str_ref("999999"), 1000000);
+  EXPECT_EQ(result, 999999);
 }
 
 } // namespace
